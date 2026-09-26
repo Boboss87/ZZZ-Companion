@@ -1,0 +1,44 @@
+{
+  "summary": "First iteration frontend-only smoke + integration test of ZZZ Companion (Expo web preview, 390x844 viewport). All major user flows work: Home dashboard renders (Assistant de farm, Projection BIENTÔT, ZZZdex 8/14, Batteries, Énergie du jour 320/120/200), bottom tabs render (Accueil/Farm/ZZZdex/Réglages), Farm list shows 7 prioritised rows for Hoshimi Miyabi, Dennies stock update sheet (stock-input + save-stock-button) works and recalculates the list (7→6 rows after setting Dennies to a very large stock), OBJECTIFS tab shows the Miyabi card with priority #1 and up/down/modifier/delete buttons, add-objective screen loads with save-objective-button, ZZZdex grid + search + all filter chips (all/owned/unowned/wishlist/element/rank) work, Réglages exposes reserve-battery-switch/add-preset-button/settings-backup-card, Backup screen exposes export/import/reset with confirm-reset-button. AsyncStorage persistence verified: Dennies stock 10 000 000 survived a full page reload. Only two concerns: (1) a minor UI inconsistency on Home — after Dennies is fully stocked and its row disappears from the farm list, the home Farm card still shows 'Prochain : Dennies' (looks like nextRow computation on Home isn't filtered by remaining>0). (2) React Native web console warnings about `useNativeDriver` fallback and deprecated `props.pointerEvents` (non-blocking). No red screen errors, no crashes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Home / Assistant de farm card",
+        "issue": "'Prochain : <material>' on Home continues to show a material even after that material's remaining quantity has been reduced to 0 in the farm list (verified with Dennies set to 10M — farm list correctly drops the row, but Home still shows 'Prochain : Dennies' and 0% progress). Home should pick the first row whose remaining>0 (or refresh nextRow after state mutations) at /app/frontend/app/(tabs)/index.tsx around lines 23-26 (current.rows[0]).",
+        "testID": "home-farm-card",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Global",
+        "issues": [
+          "Console warning: `Animated: useNativeDriver is not supported` — expected on web, but consider guarding animations with Platform.OS !== 'web' or `useNativeDriver:false` on web to silence the warning.",
+          "Console warning: `props.pointerEvents is deprecated. Use style.pointerEvents` — likely coming from one of the UI/BottomSheet components; migrate to `style={{ pointerEvents: '...' }}`."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix Home 'Prochain' selection to skip rows with remaining<=0 (or recompute after state changes) in /app/frontend/app/(tabs)/index.tsx.",
+    "Silence RN-web warnings: convert `pointerEvents` prop usages to `style.pointerEvents` and set `useNativeDriver:false` on web animations.",
+    "No other blocking issues — feature set for iteration 1 is fully functional."
+  ],
+  "critical_code_review_comments": [
+    "gameData.ts / farmEngine.ts business logic works correctly: setting a huge common-material stock removes that row from the farm list and reduces row count (verified 7→6).",
+    "AsyncStorage persistence via key 'zzz_companion_state_v1' works: stock, agents, objectives, and preset changes survive full page reload.",
+    "All required testIDs from the review request are present and reachable (home-*, farm-row-*, common-stock-*, stock-input, save-stock-button, add-objective-button, save-objective-button, agent-search, filter-*, reserve-battery-switch, add-preset-button, settings-backup-card, export-button, import-button, reset-button, confirm-reset-button, obj-up-*/obj-down-*/obj-edit-*/obj-delete-*).",
+    "No deprecated Expo packages detected (no expo-av / expo-barcode-scanner / expo-background-fetch)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only)", "frontend": "~97% (all flows pass; 1 minor Home 'Prochain' display inconsistency)"},
+  "seed_data_creation": "None created — app ships with example agents/objectives/presets seeded in gameData.ts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Frontend is fully functional and served at https://mobile-dev-blueprint.preview.emergentagent.com/. Use viewport 390x844. Persistence uses AsyncStorage key 'zzz_companion_state_v1' — to reset between test runs, either navigate to /backup and tap reset-button → confirm-reset-button, or clear browser localStorage. Only known nit: Home 'Prochain' can show a material that no longer appears in the farm list until the farm engine's row is regenerated correctly on Home.",
+  "rca_of_issue": "Home 'Prochain' bug RCA (minor): index.tsx uses `nextRow = current?.rows[0]`. If `current.rows` in farm status still contains rows with remaining<=0 (or is not re-derived on state mutation), Home will display a completed material. Fix: filter `current.rows.filter(r => r.remaining > 0)[0]` or ensure computeFarm() excludes rows where remaining <= 0 before returning them per status. Reproduction: open Farm → tap Dennies pill → set to 9999999 → save → tap Accueil tab. Expected: 'Prochain' shows the next uncompleted material (e.g. Journaux d'enquête). Actual: still shows 'Prochain : Dennies' with 0%. Also persists across reload."
+}

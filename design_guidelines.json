@@ -1,0 +1,157 @@
+{
+  "app_name": "ZZZ Companion",
+  "personality": "7 Dark-First Utility DARK with Brutalist structural elements",
+  "personality_one_liner": "A high-contrast, tactical, street-urban dashboard combining deep carbon blacks, aggressive neon yellow accents, and sharp typography to mirror the energetic tech-nostalgia of Zenless Zone Zero.",
+  "color": {
+    "surface": "#0A0A0A",
+    "onSurface": "#FFFFFF",
+    "surfaceSecondary": "#1A1A1A",
+    "onSurfaceSecondary": "#E5E5E5",
+    "surfaceTertiary": "#262626",
+    "onSurfaceTertiary": "#CCCCCC",
+    "surfaceInverse": "#EEEEEE",
+    "onSurfaceInverse": "#000000",
+    "brand": "#FEEE00",
+    "onBrand": "#000000",
+    "brandPrimary": "#FEEE00",
+    "onBrandPrimary": "#000000",
+    "brandSecondary": "#FF2A55",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#333333",
+    "onBrandTertiary": "#FFFFFF",
+    "success": "#00FF66",
+    "onSuccess": "#000000",
+    "warning": "#FF9900",
+    "onWarning": "#000000",
+    "error": "#FF3333",
+    "onError": "#FFFFFF",
+    "info": "#00E5FF",
+    "onInfo": "#000000",
+    "border": "#333333",
+    "borderStrong": "#FEEE00",
+    "divider": "#262626",
+    "muted": "#808080"
+  },
+  "typography": {
+    "displayFontFamily": "Bebas Neue",
+    "textFontFamily": "IBM Plex Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Rigid grids, hard alignment, minimal padding for maximum data density, but generous thumb zones at the bottom.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 0,
+    "md": 4,
+    "lg": 8,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Bottom tab bar with dark heavy tint (80% opacity) + blur",
+      "Sticky headers when scrolling through the agent grid"
+    ],
+    "dont's": [
+      "Do not use blur on cards or standard UI elements",
+      "Do not use light frosted glass; must be heavily dark-tinted"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-blur",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Home (Accueil)",
+      "purpose": "Dashboard of tappable summary cards providing an at-a-glance status of farming, pulls, and battery.",
+      "states": {
+        "loading": "Centered loading spinner with 'SYNCING...' text in Bebas Neue.",
+        "empty": "No data available.",
+        "error": "Error loading data, Retry button."
+      },
+      "layout": "Grid-like dashboard. Use 100% width stacked cards. Primary 'Farm Assistant' card gets a brandPrimary (Yellow) borderStrong or accent. Use progress bars (sharp corners) inside the 'Batteries' and 'Financial Projection' cards. Status indicators (Budget OK) should use semantic colors (success/error) with a tech-label style (e.g., solid background, black text)."
+    },
+    {
+      "name": "Farm Assistant",
+      "purpose": "The main daily-use module showing a prioritized list of farm objectives.",
+      "states": {
+        "loading": "Skeleton rows reflecting the list structure.",
+        "empty": "Stylized empty state with an icon and 'NO ACTIVE FARMING' message + primary CTA to Add Objective.",
+        "error": "Failed to load farm list, Retry button."
+      },
+      "layout": "List view. Each row represents a material, showing remaining quantity, estimated time, and character. Use a thick left border (brandPrimary) for high-priority items. Include a sticky 'Add Objective' FAB or fixed bottom button. Tapping a row opens a bottom sheet to manually update stock using a stepper/input. Use tabs or horizontal chips for presets ('Build normal', 'Build VH')."
+    },
+    {
+      "name": "ZZZdex",
+      "purpose": "A comprehensive database and collection manager for agents and builds.",
+      "states": {
+        "loading": "Grid of skeleton squares.",
+        "empty": "No agents found matching filters.",
+        "error": "Error loading database, Retry button."
+      },
+      "layout": "Top section: sticky horizontal scrolling chip row for filters (Element, Specialization, Rank). Main area: 2-column or 3-column grid of agent portraits (thumbnails). Unowned agents are rendered with 100% grayscale and low opacity. Each portrait has a corner badge for Mindscape level. Tapping opens a detailed view (bottom sheet or new screen) with tabs: General, Collection, Builds, Notes."
+    },
+    {
+      "name": "Backup/Save",
+      "purpose": "Export/import settings to manage local data safety.",
+      "states": {
+        "loading": "Processing backup...",
+        "empty": "N/A",
+        "error": "Backup failed, show error message."
+      },
+      "layout": "Terminal-like utility screen. Monospaced or bold centered typography. Large blocky buttons for 'EXPORT TO DEVICE', 'SAVE TO DRIVE', and 'IMPORT'. Use a distinct warning state/color for 'Delete/Reset Data' if present."
+    }
+  ],
+  "images": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1590347945111-a14c8efd9249?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwxfHxjeWJlcnB1bmslMjB1cmJhbiUyMHN0cmVldCUyMG5pZ2h0JTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3OTA0MjY0ODl8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Cyberpunk urban street night background"
+    }
+  },
+  "haptics": {
+    "events": {
+      "primary_button_press": "impactLight",
+      "tab_change": "selection",
+      "stock_increment_decrement": "impactLight",
+      "objective_complete": "notificationSuccess",
+      "error_state": "notificationError",
+      "filter_chip_toggle": "selection"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Dark-First Utility guidelines. Pure black/carbon background (#0A0A0A) with bright yellow (#FEEE00) as the primary brand color.",
+    "BANNED COLOR OVERRIDE: While blue/purple is strictly banned in the core UI, the prompt EXPLICITLY requested element colors (Ice/Electric/Ether). You MAY use Cyan/Blue/Purple HEX values ONLY for these specific elemental badges/indicators, nowhere else.",
+    "Typography: Use 'Bebas Neue' for all display headings, numbers, counters, and main screen titles. Use 'IBM Plex Sans' for body copy, labels, and small data. Limit weights to 400 and 500 (Bebas is naturally bold, do not apply extra weight).",
+    "Layout: Use rigid, boxy cards. Radius is very small (0 to 4px) to give a sharp, aggressive, gaming UI feel.",
+    "Images: For the ZZZdex, you MUST use the `image_selector_tool` to fetch actual Zenless Zone Zero agent portraits. Pass specific queries like 'ZZZ Ellen Joe portrait' or 'Zenless Zone Zero character icon'. Fallback to initials ONLY if the fetch fails.",
+    "Images MUST use a top-to-bottom linear gradient scrim when text is placed over them (0% transparent to 80% surfaceInverse).",
+    "Keep primary actions sticky at the bottom of the screen (e.g., Farm Assistant 'Add Objective' button).",
+    "In the Farm Assistant, when updating stock, use a Bottom Sheet with large touch targets for incrementing/decrementing numbers.",
+    "Ensure 'Unowned' agents in the ZZZdex grid use grayscale filters and reduced opacity (e.g., 40%) to clearly differentiate them from owned agents."
+  ]
+}
