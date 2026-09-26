@@ -44,6 +44,9 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 - [x] Thème clair pastel + sélecteur Système/Clair/Sombre (piloté par contexte, fonctionne aussi sur web), persistant.
 - [x] Testé end-to-end (testing_agent iteration_2) — tous les flux passent.
 
+## Implémenté — itération 3 (2026-06)
+- [x] Sauvegarde auto : suivi des modifications non exportées (`dirty`) + date de dernière sauvegarde (`lastExportAt`). Quand l'app revient au premier plan avec des modifications en attente, une invite « Sauvegarde recommandée » propose d'exporter (composant `AutoBackupGate`, écoute `AppState`). Interrupteur « Sauvegarde auto » dans Réglages, date de dernière sauvegarde affichée sur l'écran Sauvegarde. Vérifié via simulation background→foreground.
+
 ## Backlog priorisé
 ### P1 (modules restants du cahier des charges)
 - Assistant de tri des Discs (regroupement des builds par set/combinaison de stats, filtres agents/builds).

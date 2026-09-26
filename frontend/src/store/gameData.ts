@@ -312,6 +312,7 @@ export function makeInitialState(): AppState {
       safetyMargin: 10,
       themeMode: "dark",
       avgDesiredCost: 130,
+      autoBackup: true,
     },
     presets: DEFAULT_PRESETS,
     agents: SEED_AGENTS,
@@ -346,6 +347,7 @@ export function makeInitialState(): AppState {
       ],
     },
     archivedPatches: [],
+    lastExportAt: null,
   };
 }
 

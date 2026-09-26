@@ -25,6 +25,7 @@ export default function BackupScreen() {
     setBusy(true);
     const res = await exportBackup(store.state);
     setBusy(false);
+    if (res.ok) store.markExported();
     toast(res.message, res.ok ? "success" : "error");
   };
 
@@ -68,6 +69,7 @@ export default function BackupScreen() {
           <Row label="Agents" value={`${counts.agents}`} />
           <Row label="Objectifs de farm" value={`${counts.objectifs}`} />
           <Row label="Presets" value={`${counts.presets}`} />
+          <Row label="Dernière sauvegarde" value={formatLastExport(store.state.lastExportAt)} />
           <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.sm }}>
             Toutes tes données tiennent dans un seul fichier .json. Enregistre-le sur ton Drive via le menu de partage.
           </AppText>
@@ -100,8 +102,14 @@ export default function BackupScreen() {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  const { colors } = useTheme();
+function formatLastExport(iso: string | null): string {
+  if (!iso) return "Jamais";
+  const d = new Date(iso);
+  const p = (n: number) => `${n}`.padStart(2, "0");
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function Row({ label, value }: { label: string; value: string }) {  const { colors } = useTheme();
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4 }}>
       <AppText variant="body" color={colors.muted}>{label}</AppText>

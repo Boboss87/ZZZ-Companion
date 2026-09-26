@@ -9,6 +9,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/src/components/error-boundary";
+import { AutoBackupGate } from "@/src/components/AutoBackupGate";
 import { Loading, ToastProvider } from "@/src/components/ui";
 import { queryClient } from "@/src/query-client";
 import { AppStoreProvider, useStore } from "@/src/store/AppStore";
@@ -82,6 +83,7 @@ function InnerChrome({ ready, mode }: { ready: boolean; mode: "light" | "dark" |
           <Loading label="LOADING..." />
         </View>
       )}
+      {ready ? <AutoBackupGate /> : null}
     </ToastProvider>
   );
 }

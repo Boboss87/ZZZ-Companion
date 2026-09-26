@@ -94,6 +94,8 @@ interface StoreContextValue {
   // data
   replaceState: (s: AppState) => void;
   resetState: () => void;
+  dirty: boolean;
+  markExported: () => void;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -101,6 +103,7 @@ const StoreContext = createContext<StoreContextValue | null>(null);
 export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(() => makeInitialState());
   const [ready, setReady] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -120,7 +123,13 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
   }, [state]);
 
   const update = useCallback((fn: (draft: AppState) => AppState) => {
+    setDirty(true);
     setState((prev) => fn({ ...prev }));
+  }, []);
+
+  const markExported = useCallback(() => {
+    setState((prev) => ({ ...prev, lastExportAt: new Date().toISOString() }));
+    setDirty(false);
   }, []);
 
   const value = useMemo<StoreContextValue>(() => {
@@ -357,10 +366,18 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       deletePermanentIncome: (id) =>
         update((s) => ({ ...s, permanentIncomes: s.permanentIncomes.filter((x) => x.id !== id) })),
 
-      replaceState: (s) => setState(migrate(s)),
-      resetState: () => setState(makeInitialState()),
+      replaceState: (s) => {
+        setState(migrate(s));
+        setDirty(false);
+      },
+      resetState: () => {
+        setState(makeInitialState());
+        setDirty(false);
+      },
+      dirty,
+      markExported,
     };
-  }, [state, ready, update]);
+  }, [state, ready, update, dirty, markExported]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -207,6 +207,24 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        <Card>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ flex: 1, paddingRight: spacing.md }}>
+              <AppText variant="body">Sauvegarde auto</AppText>
+              <AppText variant="caption" color={colors.muted}>
+                Te propose d'exporter tes données en revenant dans l'app après des modifications
+              </AppText>
+            </View>
+            <Switch
+              testID="autobackup-switch"
+              value={s.autoBackup}
+              onValueChange={(v) => { haptic.select(); store.setSettings({ autoBackup: v }); }}
+              trackColor={{ true: colors.brandPrimary, false: colors.surfaceTertiary }}
+              thumbColor={colors.onSurface}
+            />
+          </View>
+        </Card>
+
         {/* Appearance + info */}
         <Card>
           <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Apparence</AppText>

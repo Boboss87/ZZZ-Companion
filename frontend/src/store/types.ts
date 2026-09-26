@@ -82,6 +82,7 @@ export interface Settings {
   safetyMargin: number; // pulls
   themeMode: ThemeMode;
   avgDesiredCost: number; // fallback avg pulls for a desired character
+  autoBackup: boolean; // propose a file backup when leaving the app
 }
 
 // ---------------------------------------------------------------------------
@@ -157,4 +158,5 @@ export interface AppState {
   permanentIncomes: PermanentIncome[];
   projection: Projection;
   archivedPatches: ArchivedPatch[];
+  lastExportAt: string | null;
 }
