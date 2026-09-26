@@ -147,6 +147,42 @@ export interface ArchivedPatch {
   closedAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Editable game data (barème de farm)
+// ---------------------------------------------------------------------------
+// Units obtained per 60-energy run for each material type (used for time estimates).
+export interface FarmRate {
+  dennies: number;
+  logs: number; // character EXP
+  power: number; // engine EXP
+  hamster: number; // skill books
+  promo: number; // agent promotion material
+  skillMat: number; // expert skill material
+  boss: number; // notorious boss material
+}
+
+// Full-build totals for one rank (character 60 + engine 60 + skills 1->12 + core A->F).
+export interface RankBareme {
+  charDennies: number;
+  charExp: number;
+  charPromo: number;
+  engineDennies: number;
+  engineExp: number;
+  skillDennies: number; // per single skill, 1 -> 12
+  skillBooks: number;
+  skillExpert: number;
+  skillBoss: number;
+  coreDennies: number; // A -> F total
+  coreBooks: number;
+  coreExpert: number;
+  coreBoss: number;
+}
+
+export interface GameConfig {
+  farmRate: FarmRate;
+  ranks: { S: RankBareme; A: RankBareme };
+}
+
 export interface AppState {
   version: number;
   settings: Settings;
@@ -159,4 +195,5 @@ export interface AppState {
   projection: Projection;
   archivedPatches: ArchivedPatch[];
   lastExportAt: string | null;
+  gameConfig: GameConfig;
 }

@@ -196,6 +196,16 @@ export default function SettingsScreen() {
           </Pressable>
         </Card>
 
+        <Card onPress={() => router.push("/gamedata")} testID="settings-gamedata-card">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <View>
+              <AppText variant="subtitle">Données du jeu (barème)</AppText>
+              <AppText variant="caption" color={colors.muted}>Coûts de farm & vitesses — éditables</AppText>
+            </View>
+            <CaretRight size={18} color={colors.muted} />
+          </View>
+        </Card>
+
         {/* Backup */}
         <Card onPress={() => router.push("/backup")} testID="settings-backup-card">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>

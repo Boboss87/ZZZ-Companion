@@ -47,6 +47,9 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 ## Implémenté — itération 3 (2026-06)
 - [x] Sauvegarde auto : suivi des modifications non exportées (`dirty`) + date de dernière sauvegarde (`lastExportAt`). Quand l'app revient au premier plan avec des modifications en attente, une invite « Sauvegarde recommandée » propose d'exporter (composant `AutoBackupGate`, écoute `AppState`). Interrupteur « Sauvegarde auto » dans Réglages, date de dernière sauvegarde affichée sur l'écran Sauvegarde. Vérifié via simulation background→foreground.
 
+## Implémenté — itération 4 (2026-06)
+- [x] Barème de farm éditable (`GameConfig` dans le store) : les coûts (personnage, moteur, compétences 1→12, core A→F) par rang S/A et les vitesses de farm (unités par run de 60 énergie) ne sont plus codés en dur. Le moteur (`computeRequirements`, `computeFarm`) lit `state.gameConfig`. Écran « Données du jeu » (`/gamedata`) éditable depuis Réglages, avec réinitialisation. Les valeurs par défaut restent des placeholders en attendant le fichier de vraies valeurs fourni par l'utilisateur.
+
 ## Backlog priorisé
 ### P1 (modules restants du cahier des charges)
 - Assistant de tri des Discs (regroupement des builds par set/combinaison de stats, filtres agents/builds).

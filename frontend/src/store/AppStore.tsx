@@ -9,19 +9,21 @@ import React, {
 } from "react";
 
 import { storage } from "@/src/utils/storage";
-import { makeInitialState } from "./gameData";
+import { DEFAULT_GAME_CONFIG, makeInitialState } from "./gameData";
 import { patchIncome, patchSpent } from "./projectionEngine";
 import {
   Agent,
   AppState,
   Build,
   FarmObjective,
+  FarmRate,
   PermanentIncome,
   Preset,
   ProjExpense,
   ProjPatch,
   Projection,
   PullSession,
+  RankBareme,
   Settings,
 } from "./types";
 
@@ -44,6 +46,7 @@ function migrate(saved: AppState): AppState {
     permanentIncomes: saved.permanentIncomes ?? base.permanentIncomes,
     projection: saved.projection ?? base.projection,
     archivedPatches: saved.archivedPatches ?? base.archivedPatches,
+    gameConfig: saved.gameConfig ?? base.gameConfig,
   };
 }
 
@@ -91,6 +94,10 @@ interface StoreContextValue {
   addPermanentIncome: (i: Omit<PermanentIncome, "id">) => void;
   updatePermanentIncome: (id: string, partial: Partial<PermanentIncome>) => void;
   deletePermanentIncome: (id: string) => void;
+  // editable game data (barème)
+  setFarmRate: (key: keyof FarmRate, value: number) => void;
+  setBareme: (rank: "S" | "A", key: keyof RankBareme, value: number) => void;
+  resetGameConfig: () => void;
   // data
   replaceState: (s: AppState) => void;
   resetState: () => void;
@@ -365,6 +372,24 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         })),
       deletePermanentIncome: (id) =>
         update((s) => ({ ...s, permanentIncomes: s.permanentIncomes.filter((x) => x.id !== id) })),
+
+      setFarmRate: (key, value) =>
+        update((s) => ({
+          ...s,
+          gameConfig: { ...s.gameConfig, farmRate: { ...s.gameConfig.farmRate, [key]: value } },
+        })),
+      setBareme: (rank, key, value) =>
+        update((s) => ({
+          ...s,
+          gameConfig: {
+            ...s.gameConfig,
+            ranks: {
+              ...s.gameConfig.ranks,
+              [rank]: { ...s.gameConfig.ranks[rank], [key]: value },
+            },
+          },
+        })),
+      resetGameConfig: () => update((s) => ({ ...s, gameConfig: DEFAULT_GAME_CONFIG })),
 
       replaceState: (s) => {
         setState(migrate(s));

@@ -1,5 +1,5 @@
-import { computeRequirements, ENERGY_PER_UNIT } from "./gameData";
-import { Agent, AppState, FarmObjective, Preset } from "./types";
+import { computeRequirements } from "./gameData";
+import { Agent, AppState, FarmObjective, FarmRate, Preset } from "./types";
 
 export function getFarmEnergy(s: AppState["settings"]): number {
   const discEnergy = s.discRuns * 60;
@@ -44,8 +44,9 @@ export interface FarmResult {
   statuses: ObjectiveStatus[];
 }
 
-function energyFor(type: string, qty: number): number {
-  return (ENERGY_PER_UNIT[type] || 1) * qty;
+function energyFor(rate: FarmRate, type: string, qty: number): number {
+  const per = (rate as unknown as Record<string, number>)[type];
+  return per > 0 ? (qty * 60) / per : 0;
 }
 
 export function computeFarm(state: AppState): FarmResult {
@@ -77,13 +78,14 @@ export function computeFarm(state: AppState): FarmResult {
       return;
     }
 
-    const reqs = computeRequirements(agent, preset);
+    const reqs = computeRequirements(agent, preset, state.gameConfig);
+    const rate = state.gameConfig.farmRate;
     let totalEnergy = 0;
     let remainingEnergy = 0;
     const rows: FarmRow[] = [];
 
     for (const r of reqs) {
-      totalEnergy += energyFor(r.type, r.qty);
+      totalEnergy += energyFor(rate, r.type, r.qty);
       let remaining = 0;
       if (r.scope === "common") {
         const avail = commonRemaining[r.materialId] ?? 0;
@@ -94,7 +96,7 @@ export function computeFarm(state: AppState): FarmResult {
         const owned = obj.ownedSpecific[r.materialId] ?? 0;
         remaining = Math.max(0, r.qty - owned);
       }
-      const remEnergy = energyFor(r.type, remaining);
+      const remEnergy = energyFor(rate, r.type, remaining);
       remainingEnergy += remEnergy;
       if (remaining > 0) {
         const row: FarmRow = {

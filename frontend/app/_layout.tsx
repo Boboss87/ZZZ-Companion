@@ -77,6 +77,7 @@ function InnerChrome({ ready, mode }: { ready: boolean; mode: "light" | "dark" |
           <Stack.Screen name="backup" options={{ presentation: "card" }} />
           <Stack.Screen name="projection" options={{ presentation: "card" }} />
           <Stack.Screen name="history" options={{ presentation: "card" }} />
+          <Stack.Screen name="gamedata" options={{ presentation: "card" }} />
         </Stack>
       ) : (
         <View style={{ flex: 1, backgroundColor: colors.surface }}>

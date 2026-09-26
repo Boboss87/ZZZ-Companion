@@ -1,4 +1,4 @@
-import { Agent, AppState, Build, Preset } from "./types";
+import { Agent, AppState, Build, GameConfig, Preset } from "./types";
 
 // ---------------------------------------------------------------------------
 // Common materials (global shared stock)
@@ -27,10 +27,6 @@ export const ENERGY_PER_UNIT: Record<string, number> = {
 // ---------------------------------------------------------------------------
 // Cost tables (approximate ZZZ S-rank leveling costs)
 // ---------------------------------------------------------------------------
-const CHAR_ASCENSION = { dennies: 100000, logs: 366, promo: 24 };
-const ENGINE_ASCENSION = { dennies: 100000, power: 366 };
-
-// Incremental cost to raise ONE skill from level L-1 to L (index = level).
 const SKILL_INC = {
   dennies: [0, 0, 1000, 2000, 4000, 6000, 9000, 13000, 18000, 25000, 35000, 48000],
   hamster: [0, 0, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18],
@@ -38,7 +34,7 @@ const SKILL_INC = {
   boss: [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3],
 };
 
-// Cumulative Core Skill cost by rank index (A=0 .. F=5).
+// Cumulative Core Skill shape by rank index (A=0 .. F=5).
 const CORE_CUM = {
   dennies: [0, 5000, 12000, 22000, 36000, 55000],
   hamster: [0, 3, 7, 12, 18, 25],
@@ -46,37 +42,28 @@ const CORE_CUM = {
   boss: [0, 1, 2, 3, 4, 5],
 };
 
+type SkillField = "dennies" | "hamster" | "skillMat" | "boss";
+
 export function coreRankIndex(rank: string): number {
   const idx = "ABCDEF".indexOf((rank || "A").toUpperCase());
   return idx < 0 ? 0 : idx;
 }
 
-function charCost(level: number) {
-  const f = Math.max(0, Math.min(1, level / 60));
-  return {
-    dennies: Math.round(CHAR_ASCENSION.dennies * f),
-    logs: Math.round(CHAR_ASCENSION.logs * f),
-    promo: Math.round(CHAR_ASCENSION.promo * f),
+function skillFieldFraction(field: SkillField, level: number): number {
+  const arr = SKILL_INC[field];
+  const cumTo = (n: number) => {
+    let s = 0;
+    for (let l = 2; l <= n; l++) s += arr[l] || 0;
+    return s;
   };
+  const full = cumTo(12);
+  return full > 0 ? cumTo(Math.max(1, Math.min(12, level))) / full : 0;
 }
 
-function engineCost(level: number) {
-  const f = Math.max(0, Math.min(1, level / 60));
-  return {
-    dennies: Math.round(ENGINE_ASCENSION.dennies * f),
-    power: Math.round(ENGINE_ASCENSION.power * f),
-  };
-}
-
-function skillCumTo(level: number) {
-  const out = { dennies: 0, hamster: 0, skillMat: 0, boss: 0 };
-  for (let l = 2; l <= level; l++) {
-    out.dennies += SKILL_INC.dennies[l] || 0;
-    out.hamster += SKILL_INC.hamster[l] || 0;
-    out.skillMat += SKILL_INC.skillMat[l] || 0;
-    out.boss += SKILL_INC.boss[l] || 0;
-  }
-  return out;
+function coreFieldFraction(field: SkillField, idx: number): number {
+  const arr = CORE_CUM[field];
+  const full = arr[5];
+  return full > 0 ? arr[Math.max(0, Math.min(5, idx))] / full : 0;
 }
 
 export interface ReqEntry {
@@ -87,38 +74,76 @@ export interface ReqEntry {
   scope: "common" | "specific";
 }
 
-// Total materials needed to bring an agent to a preset target.
-export function computeRequirements(agent: Agent, preset: Preset): ReqEntry[] {
-  const c = charCost(preset.charLevel);
-  const e = engineCost(preset.engineLevel);
+// Default, editable barème. Placeholder numbers — replace with real values
+// via the in-app "Données du jeu" screen.
+export const DEFAULT_GAME_CONFIG: GameConfig = {
+  farmRate: { dennies: 45000, logs: 67, power: 67, hamster: 20, promo: 1.5, skillMat: 2.7, boss: 2 },
+  ranks: {
+    S: {
+      charDennies: 100000,
+      charExp: 366,
+      charPromo: 24,
+      engineDennies: 100000,
+      engineExp: 366,
+      skillDennies: 161000,
+      skillBooks: 83,
+      skillExpert: 16,
+      skillBoss: 9,
+      coreDennies: 55000,
+      coreBooks: 25,
+      coreExpert: 6,
+      coreBoss: 5,
+    },
+    A: {
+      charDennies: 80000,
+      charExp: 300,
+      charPromo: 20,
+      engineDennies: 80000,
+      engineExp: 300,
+      skillDennies: 120000,
+      skillBooks: 60,
+      skillExpert: 12,
+      skillBoss: 6,
+      coreDennies: 40000,
+      coreBooks: 18,
+      coreExpert: 4,
+      coreBoss: 4,
+    },
+  },
+};
+
+// Total materials needed to bring an agent to a preset target, using the
+// editable GameConfig barème.
+export function computeRequirements(agent: Agent, preset: Preset, config: GameConfig): ReqEntry[] {
+  const b = config.ranks[agent.rank] ?? config.ranks.S;
+  const cf = Math.max(0, Math.min(1, preset.charLevel / 60));
+  const ef = Math.max(0, Math.min(1, preset.engineLevel / 60));
 
   const skills = [preset.basic, preset.ex, preset.ultimate, preset.dodge, preset.assist];
   let sDennies = 0,
-    sHamster = 0,
-    sSkillMat = 0,
+    sBooks = 0,
+    sExpert = 0,
     sBoss = 0;
   for (const lvl of skills) {
-    const s = skillCumTo(lvl);
-    sDennies += s.dennies;
-    sHamster += s.hamster;
-    sSkillMat += s.skillMat;
-    sBoss += s.boss;
+    sDennies += b.skillDennies * skillFieldFraction("dennies", lvl);
+    sBooks += b.skillBooks * skillFieldFraction("hamster", lvl);
+    sExpert += b.skillExpert * skillFieldFraction("skillMat", lvl);
+    sBoss += b.skillBoss * skillFieldFraction("boss", lvl);
   }
-  const ci = coreRankIndex(preset.coreSkill);
-  const core = {
-    dennies: CORE_CUM.dennies[ci],
-    hamster: CORE_CUM.hamster[ci],
-    skillMat: CORE_CUM.skillMat[ci],
-    boss: CORE_CUM.boss[ci],
-  };
 
-  const dennies = c.dennies + e.dennies + sDennies + core.dennies;
-  const logs = c.logs;
-  const power = e.power;
-  const hamster = sHamster + core.hamster;
-  const promo = c.promo;
-  const skillMat = sSkillMat + core.skillMat;
-  const boss = sBoss + core.boss;
+  const ci = coreRankIndex(preset.coreSkill);
+  const cDennies = b.coreDennies * coreFieldFraction("dennies", ci);
+  const cBooks = b.coreBooks * coreFieldFraction("hamster", ci);
+  const cExpert = b.coreExpert * coreFieldFraction("skillMat", ci);
+  const cBoss = b.coreBoss * coreFieldFraction("boss", ci);
+
+  const dennies = Math.round(b.charDennies * cf + b.engineDennies * ef + sDennies + cDennies);
+  const logs = Math.round(b.charExp * cf);
+  const power = Math.round(b.engineExp * ef);
+  const hamster = Math.round(sBooks + cBooks);
+  const promo = Math.round(b.charPromo * cf);
+  const skillMat = Math.round(sExpert + cExpert);
+  const boss = Math.round(sBoss + cBoss);
 
   return [
     { materialId: "dennies", name: "Dennies", type: "dennies", qty: dennies, scope: "common" },
@@ -348,6 +373,7 @@ export function makeInitialState(): AppState {
     },
     archivedPatches: [],
     lastExportAt: null,
+    gameConfig: DEFAULT_GAME_CONFIG,
   };
 }
 
