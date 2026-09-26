@@ -1,0 +1,36 @@
+{
+  "summary": "Iteration 2 frontend testing (theme + projection + history) on the local Expo web preview passed all critical flows. Light pastel theme applies globally and persists after reload. Home projection card correctly reflects BUDGET OK / INSUFFISANT + deficit patch label. Projection screen math (startPulls + floor((poly+mono)/160)) is correct; patch expenses recompute SOLDE and turn card red on deficit. History banner chips switch stats; a session with pulls=120 / S-Rank at position 50 (lost) / S-Rank at position 112 (guaranteed, desired) yields PITY ACTUELLE=8, MOYENNE S-RANK=56 (interval avg), COÛT MOYEN SOUHAITÉ=112, 50/50=0% (0/1) exactly as spec required. Session and stats survive a full page reload. Farm assistant + ZZZdex regressions still render. No red-screen errors, no console errors.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "History (session sheet)",
+        "issues": [
+          "'Nombre de tirages' Stepper step is 10 while the S-Rank position Stepper step is 1; going from position 30 to 112 requires 82 taps. Consider step=5 or a numeric input for the position field."
+        ]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/home_final2.png",
+    "/tmp/hist_saved2.png",
+    "/tmp/home_after_deficit.png",
+    "/tmp/settings_light.png",
+    "/tmp/after_reload_light.png"
+  ],
+  "action_items": [
+    "(nice-to-have) Increase S-Rank position stepper step from 1 to at least 5, or expose a direct numeric input, to make entering large pity positions ergonomic."
+  ],
+  "critical_code_review_comments": [
+    "Stepper uses a shared testID ('stepper-plus'/'stepper-minus') without per-field disambiguation. Not a bug, but automated tests must rely on DOM order which is brittle; consider adding a `testIDPrefix` prop."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A", "frontend": "100%" },
+  "seed_data_creation": "None. Testing used only interactive UI flows on a fresh browser context.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Playwright can drive Steppers in bottom sheets by using page.locator('[data-testid=\"stepper-plus\"]').nth(idx). The Session sheet's first stepper (idx=0) is 'Nombre de tirages'; the position stepper of the i-th S-Rank result is at idx=i+1. Strip the 'result-' prefix before composing outcome-<id>-<lost|won|guaranteed>. IndexedDB via @react-native-async-storage/async-storage is used for persistence (not localStorage) so localStorage seeding does not work — go through the UI.",
+  "rca_of_issue": "N/A — no bugs found."
+}

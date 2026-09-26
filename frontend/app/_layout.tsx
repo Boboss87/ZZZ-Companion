@@ -11,7 +11,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/src/components/error-boundary";
 import { Loading, ToastProvider } from "@/src/components/ui";
 import { queryClient } from "@/src/query-client";
-import { AppStoreProvider } from "@/src/store/AppStore";
+import { AppStoreProvider, useStore } from "@/src/store/AppStore";
+import { applyThemeMode, ThemeSchemeProvider, useTheme } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
 
@@ -32,32 +33,55 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <KeyboardProvider>
               <AppStoreProvider>
-                <ToastProvider>
-                  <StatusBar style="light" />
-                  {ready ? (
-                    <Stack
-                      screenOptions={{
-                        headerShown: false,
-                        contentStyle: { backgroundColor: "#0A0A0A" },
-                        animation: "slide_from_right",
-                      }}
-                    >
-                      <Stack.Screen name="(tabs)" />
-                      <Stack.Screen name="agent/[id]" options={{ presentation: "card" }} />
-                      <Stack.Screen name="farm/objective" options={{ presentation: "card" }} />
-                      <Stack.Screen name="backup" options={{ presentation: "card" }} />
-                    </Stack>
-                  ) : (
-                    <View style={{ flex: 1, backgroundColor: "#0A0A0A" }}>
-                      <Loading label="LOADING..." />
-                    </View>
-                  )}
-                </ToastProvider>
+                <ThemedShell ready={ready} />
               </AppStoreProvider>
             </KeyboardProvider>
           </QueryClientProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
+  );
+}
+
+function ThemedShell({ ready }: { ready: boolean }) {
+  const { state } = useStore();
+  return (
+    <ThemeSchemeProvider mode={state.settings.themeMode}>
+      <InnerChrome ready={ready} mode={state.settings.themeMode} />
+    </ThemeSchemeProvider>
+  );
+}
+
+function InnerChrome({ ready, mode }: { ready: boolean; mode: "light" | "dark" | "system" }) {
+  const { scheme, colors } = useTheme();
+
+  useEffect(() => {
+    applyThemeMode(mode);
+  }, [mode]);
+
+  return (
+    <ToastProvider>
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      {ready ? (
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.surface },
+            animation: "slide_from_right",
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="agent/[id]" options={{ presentation: "card" }} />
+          <Stack.Screen name="farm/objective" options={{ presentation: "card" }} />
+          <Stack.Screen name="backup" options={{ presentation: "card" }} />
+          <Stack.Screen name="projection" options={{ presentation: "card" }} />
+          <Stack.Screen name="history" options={{ presentation: "card" }} />
+        </Stack>
+      ) : (
+        <View style={{ flex: 1, backgroundColor: colors.surface }}>
+          <Loading label="LOADING..." />
+        </View>
+      )}
+    </ToastProvider>
   );
 }

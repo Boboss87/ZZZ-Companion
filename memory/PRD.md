@@ -36,10 +36,16 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 - [x] Persistance locale AsyncStorage; thème dark ZZZ; polices; toasts; haptique.
 - [x] Testé end-to-end (testing_agent iteration_1) — tous les flux passent.
 
+## Implémenté — itération 2 (2026-06)
+- [x] Projection de pulls (`/projection`): situation actuelle (tickets/polychromes/monochromes → total dispo, 160 poly = 1 ticket), projection patch par patch (entrées permanentes + événements, dépenses prévues/réelles, solde, ≈ N perso), détection de déficit, éditeur de patch (nom, durée, revenus, dépenses), clôture de patch avec report du solde + archive.
+- [x] Historique de pulls (`/history`): sessions par bannière (Perso/Moteur/Bangboo/Standard), calcul pity courant, moyenne par S-Rank, coût moyen du perso souhaité, taux 50/50 & 75/25, éditeur de session (date, tirages, S-Ranks avec position, souhaité, résultat). Vérifié conforme à l'exemple du cahier des charges (pity 8, moyenne 56, coût souhaité 112).
+- [x] Revenus permanents configurables + coût moyen souhaité (auto depuis l'historique) dans Réglages.
+- [x] Cartes Accueil Projection & Historique fonctionnelles (Budget OK/insuffisant, coût moyen, 50/50, pity).
+- [x] Thème clair pastel + sélecteur Système/Clair/Sombre (piloté par contexte, fonctionne aussi sur web), persistant.
+- [x] Testé end-to-end (testing_agent iteration_2) — tous les flux passent.
+
 ## Backlog priorisé
 ### P1 (modules restants du cahier des charges)
-- Projection de pulls (planificateur financier saison complète, revenus permanents/temporaires configurables, dépenses prévues, clôture de patch + historique).
-- Historique de pulls (sessions par bannière, calcul pity/50-50/75-25, coût moyen personnage souhaité, stats + graphiques).
 - Assistant de tri des Discs (regroupement des builds par set/combinaison de stats, filtres agents/builds).
 
 ### P2 (raffinements)

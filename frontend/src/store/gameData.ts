@@ -310,6 +310,8 @@ export function makeInitialState(): AppState {
       backupBatteries: 0,
       patchDurationDays: 42,
       safetyMargin: 10,
+      themeMode: "dark",
+      avgDesiredCost: 130,
     },
     presets: DEFAULT_PRESETS,
     agents: SEED_AGENTS,
@@ -324,6 +326,26 @@ export function makeInitialState(): AppState {
       },
     ],
     commonStock: stock,
+    pullSessions: [],
+    permanentIncomes: [
+      { id: "inc_daily", name: "Daily / Missions", pullsPerPatch: 16 },
+      { id: "inc_ik", name: "IK Membership", pullsPerPatch: 42 },
+      { id: "inc_bp", name: "Battle Pass", pullsPerPatch: 10 },
+      { id: "inc_hz", name: "Hollow Zero", pullsPerPatch: 8 },
+      { id: "inc_shiyu", name: "Shiyu Defense", pullsPerPatch: 12 },
+      { id: "inc_da", name: "Deadly Assault", pullsPerPatch: 10 },
+    ],
+    projection: {
+      startPulls: 0,
+      polychromes: 0,
+      monochromes: 0,
+      patches: [
+        { id: "p1", name: "3.0", durationDays: 42, tempIncome: 20, expenses: [] },
+        { id: "p2", name: "3.1", durationDays: 42, tempIncome: 20, expenses: [] },
+        { id: "p3", name: "3.2", durationDays: 42, tempIncome: 20, expenses: [] },
+      ],
+    },
+    archivedPatches: [],
   };
 }
 

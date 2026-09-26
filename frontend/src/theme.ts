@@ -3,10 +3,12 @@
 // The app ships a single dark palette; the forced scheme always resolves to it
 // so the UI is always dark regardless of the device setting.
 
-import { useMemo } from "react";
+import { createContext, createElement, useContext, useMemo } from "react";
+import type { ReactNode } from "react";
 import { Appearance, StyleSheet, useColorScheme } from "react-native";
 
 export type ColorScheme = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
 
 const dark = {
   // Surfaces
@@ -46,24 +48,71 @@ const dark = {
   divider: "#262626",
 };
 
+// Light pastel palette — calm, soft, less "violent" than the dark theme.
+const light: typeof dark = {
+  surface: "#F5F6FA",
+  onSurface: "#232733",
+  surfaceSecondary: "#FFFFFF",
+  onSurfaceSecondary: "#3A3F4C",
+  surfaceTertiary: "#EBEEF3",
+  onSurfaceTertiary: "#565C6B",
+  surfaceInverse: "#232733",
+  onSurfaceInverse: "#FFFFFF",
+  muted: "#8A909E",
+
+  brand: "#4FA3C7",
+  onBrand: "#FFFFFF",
+  brandPrimary: "#4FA3C7",
+  onBrandPrimary: "#FFFFFF",
+  brandSecondary: "#F2A65A",
+  onBrandSecondary: "#3A2400",
+  brandTertiary: "#E4EAF0",
+  onBrandTertiary: "#3A3F4C",
+
+  success: "#2FA36B",
+  onSuccess: "#FFFFFF",
+  warning: "#D98A2B",
+  onWarning: "#FFFFFF",
+  error: "#E5484D",
+  onError: "#FFFFFF",
+  info: "#3E9DC4",
+  onInfo: "#FFFFFF",
+
+  border: "#E1E5EC",
+  borderStrong: "#4FA3C7",
+  divider: "#EBEEF3",
+};
+
 export type ThemeColors = typeof dark;
 
-export const defaultScheme = "light" satisfies ColorScheme;
+export const defaultScheme = "dark" satisfies ColorScheme;
 
-// Single dark palette exposed under the `light` slot so the forced scheme
-// always resolves to these dark values.
-export const themes: { light: ThemeColors; dark?: ThemeColors } = { light: dark };
+export const themes: { light: ThemeColors; dark: ThemeColors } = { light, dark };
 
 export function setColorScheme(scheme: ColorScheme | null) {
   Appearance.setColorScheme?.(scheme ?? "unspecified");
 }
 
-setColorScheme?.(themes.dark ? null : defaultScheme);
+export function applyThemeMode(mode: ThemeMode) {
+  setColorScheme(mode === "system" ? null : mode);
+}
+
+// Context lets an in-app toggle drive the palette on every platform,
+// including web where Appearance.setColorScheme is a no-op.
+const ThemeContext = createContext<ColorScheme | null>(null);
+
+export function ThemeSchemeProvider({ mode, children }: { mode: ThemeMode; children: ReactNode }) {
+  const system = useColorScheme();
+  const resolved: ColorScheme =
+    mode === "system" ? (system && themes[system] ? system : defaultScheme) : mode;
+  return createElement(ThemeContext.Provider, { value: resolved }, children);
+}
 
 export function useTheme(): { scheme: ColorScheme; colors: ThemeColors } {
+  const override = useContext(ThemeContext);
   const system = useColorScheme();
-  const scheme: ColorScheme = system && themes[system] ? system : defaultScheme;
-  return { scheme, colors: themes[scheme] ?? themes.light };
+  const scheme: ColorScheme = override ?? (system && themes[system] ? system : defaultScheme);
+  return { scheme, colors: themes[scheme] ?? themes.dark };
 }
 
 export function makeStyles<T extends StyleSheet.NamedStyles<T> | StyleSheet.NamedStyles<any>>(

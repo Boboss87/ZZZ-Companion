@@ -26,7 +26,7 @@ export function AgentPortrait({
   const { colors } = useTheme();
   const elementColor = ELEMENT_COLORS[agent.element] ?? colors.brandPrimary;
   const owned = agent.owned;
-  const base = owned ? elementColor : "#2A2A2A";
+  const base = owned ? elementColor : colors.surfaceTertiary;
 
   return (
     <Pressable
@@ -59,7 +59,7 @@ export function AgentPortrait({
           />
         ) : (
           <LinearGradient
-            colors={[base, "#0A0A0A"]}
+            colors={[base, owned ? "#0A0A0A" : colors.surface]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={{ flex: 1, alignItems: "center", justifyContent: "center" }}

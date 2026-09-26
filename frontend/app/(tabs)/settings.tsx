@@ -7,6 +7,7 @@ import {
   PencilSimple,
   Plus,
   Trash,
+  TrendUp,
 } from "phosphor-react-native";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
@@ -15,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet } from "@/src/components/BottomSheet";
 import {
   AppText,
-  Badge,
   Card,
   Chip,
   Loading,
@@ -153,6 +153,49 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {/* Projection & pulls */}
+        <Card>
+          <View style={styles.cardHead}>
+            <TrendUp size={18} color={colors.info} weight="bold" />
+            <AppText variant="subtitle">Projection & pulls</AppText>
+          </View>
+          <SettingRow label="Durée d'un patch (jours)">
+            <Stepper value={s.patchDurationDays} onChange={(v) => store.setSettings({ patchDurationDays: Math.max(1, v) })} step={7} min={1} />
+          </SettingRow>
+          <SettingRow label="Coût moyen perso souhaité" hint="tickets — auto via l'historique si dispo">
+            <Stepper value={s.avgDesiredCost} onChange={(v) => store.setSettings({ avgDesiredCost: v })} step={5} min={1} />
+          </SettingRow>
+          <AppText variant="label" color={colors.muted} style={{ marginTop: spacing.md, marginBottom: spacing.xs }}>
+            REVENUS PERMANENTS (tickets / patch)
+          </AppText>
+          <View style={{ gap: spacing.sm }}>
+            {state.permanentIncomes.map((inc) => (
+              <View key={inc.id} style={styles.incomeCard} testID={`income-row-${inc.id}`}>
+                <TextInput
+                  value={inc.name}
+                  onChangeText={(t) => store.updatePermanentIncome(inc.id, { name: t })}
+                  placeholderTextColor={colors.muted}
+                  style={styles.incomeInput}
+                />
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
+                  <Stepper value={inc.pullsPerPatch} onChange={(v) => store.updatePermanentIncome(inc.id, { pullsPerPatch: v })} step={2} />
+                  <Pressable testID={`income-delete-${inc.id}`} onPress={() => { haptic.light(); store.deletePermanentIncome(inc.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
+                    <Trash size={16} color={colors.error} />
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+          <Pressable
+            testID="add-income-button"
+            onPress={() => { haptic.light(); store.addPermanentIncome({ name: "Nouvelle source", pullsPerPatch: 10 }); }}
+            style={styles.addRow}
+          >
+            <Plus size={16} color={colors.brandPrimary} weight="bold" />
+            <AppText variant="label" color={colors.brandPrimary}>AJOUTER UNE SOURCE</AppText>
+          </Pressable>
+        </Card>
+
         {/* Backup */}
         <Card onPress={() => router.push("/backup")} testID="settings-backup-card">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -164,16 +207,17 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
-        {/* App info */}
+        {/* Appearance + info */}
         <Card>
-          <AppText variant="subtitle">À propos</AppText>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: spacing.sm }}>
-            <AppText variant="body" color={colors.muted}>Apparence</AppText>
-            <Badge label="SOMBRE" bg={colors.surfaceTertiary} fg={colors.onSurfaceTertiary} />
+          <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Apparence</AppText>
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Chip label="Système" selected={s.themeMode === "system"} onPress={() => store.setSettings({ themeMode: "system" })} testID="theme-system" />
+            <Chip label="Clair" selected={s.themeMode === "light"} onPress={() => store.setSettings({ themeMode: "light" })} testID="theme-light" />
+            <Chip label="Sombre" selected={s.themeMode === "dark"} onPress={() => store.setSettings({ themeMode: "dark" })} testID="theme-dark" />
           </View>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: spacing.sm }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: spacing.md }}>
             <AppText variant="body" color={colors.muted}>Version</AppText>
-            <AppText variant="body">1.0.0 · 100% local</AppText>
+            <AppText variant="body">1.1.0 · 100% local</AppText>
           </View>
         </Card>
       </ScrollView>
@@ -307,5 +351,35 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
+  },
+  incomeCard: {
+    backgroundColor: c.surfaceTertiary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: spacing.md,
+  },
+  incomeInput: {
+    fontFamily: fonts.medium,
+    fontSize: 15,
+    color: c.onSurface,
+    backgroundColor: c.surfaceSecondary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  addRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.brandPrimary,
+    borderStyle: "dashed",
   },
 }));

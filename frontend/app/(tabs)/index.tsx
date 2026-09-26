@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { BatteryHigh, CaretRight, Lightning, TrendUp } from "phosphor-react-native";
+import { BatteryHigh, CaretRight, ClockCounterClockwise, Lightning, TrendUp } from "phosphor-react-native";
 import React, { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AgentPortrait } from "@/src/components/AgentPortrait";
 import { AppText, Badge, Card, Loading, ProgressBar } from "@/src/components/ui";
 import { batteryDays, computeFarm, fmtDays } from "@/src/store/farmEngine";
+import { computeProjection } from "@/src/store/projectionEngine";
+import { computeBannerStats, desiredCostEstimate } from "@/src/store/pullStats";
 import { useStore } from "@/src/store/AppStore";
 import { fonts, radius, spacing, useTheme } from "@/src/theme";
 
@@ -27,6 +29,12 @@ export default function HomeScreen() {
   const owned = state.agents.filter((a) => a.owned).length;
   const total = state.agents.length;
   const bDays = batteryDays(state.settings);
+
+  const avgDesired = desiredCostEstimate(state.pullSessions, state.settings.avgDesiredCost);
+  const proj = computeProjection(state, avgDesired);
+  const firstRow = proj.rows[0];
+  const budgetOk = proj.firstDeficitIndex < 0;
+  const charStats = computeBannerStats("char_limited", state.pullSessions);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -78,19 +86,69 @@ export default function HomeScreen() {
           )}
         </Card>
 
-        {/* Projection financière — coming soon */}
-        <Card testID="home-projection-card">
+        {/* Projection financière */}
+        <Card onPress={() => router.navigate("/projection")} testID="home-projection-card">
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
             <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
               <TrendUp size={20} color={colors.info} weight="bold" />
               <AppText variant="subtitle">Projection financière</AppText>
             </View>
-            <Badge label="BIENTÔT" bg={colors.surfaceTertiary} fg={colors.muted} />
+            <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
+              <Badge
+                label={budgetOk ? "BUDGET OK" : "INSUFFISANT"}
+                bg={budgetOk ? colors.success : colors.error}
+                fg={budgetOk ? colors.onSuccess : colors.onError}
+              />
+              <CaretRight size={18} color={colors.muted} />
+            </View>
           </View>
-          <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
-            Planifie tes pulls sur toute la saison. Module à venir.
-          </AppText>
+          {firstRow ? (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: spacing.sm }}>
+              <View>
+                <AppText variant="caption" color={colors.muted}>APRÈS {firstRow.patch.name.toUpperCase()}</AppText>
+                <AppText style={{ fontFamily: fonts.display, fontSize: 28, color: firstRow.deficit ? colors.error : colors.brandPrimary }}>
+                  {firstRow.balanceAfter} <AppText variant="title" color={colors.muted}>tickets</AppText>
+                </AppText>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <AppText variant="label" color={colors.muted}>MARGE</AppText>
+                <AppText variant="subtitle" color={colors.info}>≈ {firstRow.chars} perso</AppText>
+              </View>
+            </View>
+          ) : (
+            <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
+              Ajoute des patchs pour planifier ta saison.
+            </AppText>
+          )}
+          {!budgetOk && proj.rows[proj.firstDeficitIndex] ? (
+            <AppText variant="caption" color={colors.error} style={{ marginTop: spacing.xs }}>
+              Déficit prévu au patch {proj.rows[proj.firstDeficitIndex].patch.name}
+            </AppText>
+          ) : null}
         </Card>
+
+        {/* Historique de pulls */}
+        <Card onPress={() => router.navigate("/history")} testID="home-history-card">
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm, alignItems: "center" }}>
+              <ClockCounterClockwise size={20} color={colors.brandSecondary} weight="bold" />
+              <AppText variant="subtitle">Historique de pulls</AppText>
+            </View>
+            <CaretRight size={18} color={colors.muted} />
+          </View>
+          {state.pullSessions.length === 0 ? (
+            <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.xs }}>
+              Ajoute ta première session pour suivre pity, 50/50 et coût moyen.
+            </AppText>
+          ) : (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: spacing.sm }}>
+              <MiniStat label="COÛT MOYEN" value={charStats.avgDesired > 0 ? `${charStats.avgDesired}` : "—"} color={colors.brandPrimary} />
+              <MiniStat label="50/50" value={charStats.wins + charStats.losses > 0 ? `${charStats.winRate}%` : "—"} color={colors.info} />
+              <MiniStat label="PITY PERSO" value={`${charStats.currentPity}`} color={colors.brandSecondary} />
+            </View>
+          )}
+        </Card>
+
 
         {/* Row: ZZZdex + Batteries */}
         <View style={{ flexDirection: "row", gap: spacing.md }}>
@@ -136,6 +194,16 @@ function EnergyStat({ label, value, color }: { label: string; value: number; col
   return (
     <View style={{ alignItems: "center", flex: 1 }}>
       <AppText style={{ fontFamily: fonts.display, fontSize: 26, color }}>{value}</AppText>
+      <AppText variant="label" color={colors.muted}>{label}</AppText>
+    </View>
+  );
+}
+
+function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ alignItems: "center", flex: 1 }}>
+      <AppText style={{ fontFamily: fonts.display, fontSize: 22, color }}>{value}</AppText>
       <AppText variant="label" color={colors.muted}>{label}</AppText>
     </View>
   );

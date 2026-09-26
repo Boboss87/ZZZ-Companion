@@ -10,7 +10,20 @@ import React, {
 
 import { storage } from "@/src/utils/storage";
 import { makeInitialState } from "./gameData";
-import { Agent, AppState, Build, FarmObjective, Preset, Settings } from "./types";
+import { patchIncome, patchSpent } from "./projectionEngine";
+import {
+  Agent,
+  AppState,
+  Build,
+  FarmObjective,
+  PermanentIncome,
+  Preset,
+  ProjExpense,
+  ProjPatch,
+  Projection,
+  PullSession,
+  Settings,
+} from "./types";
 
 const STORAGE_KEY = "zzz_companion_state_v1";
 
@@ -18,6 +31,20 @@ let counter = 0;
 export function genId(prefix: string): string {
   counter += 1;
   return `${prefix}_${Date.now().toString(36)}_${counter}`;
+}
+
+// Fill any missing fields introduced by later versions so old saves keep working.
+function migrate(saved: AppState): AppState {
+  const base = makeInitialState();
+  return {
+    ...base,
+    ...saved,
+    settings: { ...base.settings, ...saved.settings },
+    pullSessions: saved.pullSessions ?? base.pullSessions,
+    permanentIncomes: saved.permanentIncomes ?? base.permanentIncomes,
+    projection: saved.projection ?? base.projection,
+    archivedPatches: saved.archivedPatches ?? base.archivedPatches,
+  };
 }
 
 interface StoreContextValue {
@@ -47,6 +74,23 @@ interface StoreContextValue {
   addPreset: (p: Preset) => void;
   updatePreset: (id: string, partial: Partial<Preset>) => void;
   deletePreset: (id: string) => void;
+  // pull history
+  addSession: (s: Omit<PullSession, "id" | "createdAt">) => void;
+  updateSession: (id: string, partial: Partial<PullSession>) => void;
+  deleteSession: (id: string) => void;
+  // projection
+  setProjection: (partial: Partial<Projection>) => void;
+  addPatch: () => void;
+  updatePatch: (id: string, partial: Partial<ProjPatch>) => void;
+  deletePatch: (id: string) => void;
+  closePatch: (id: string) => void;
+  addExpense: (patchId: string, e: Omit<ProjExpense, "id">) => void;
+  updateExpense: (patchId: string, expenseId: string, partial: Partial<ProjExpense>) => void;
+  deleteExpense: (patchId: string, expenseId: string) => void;
+  // permanent incomes
+  addPermanentIncome: (i: Omit<PermanentIncome, "id">) => void;
+  updatePermanentIncome: (id: string, partial: Partial<PermanentIncome>) => void;
+  deletePermanentIncome: (id: string) => void;
   // data
   replaceState: (s: AppState) => void;
   resetState: () => void;
@@ -63,7 +107,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const saved = await storage.getItem<AppState | null>(STORAGE_KEY, null);
       if (saved && typeof saved === "object" && (saved as AppState).version) {
-        setState(saved as AppState);
+        setState(migrate(saved as AppState));
       }
       loaded.current = true;
       setReady(true);
@@ -191,7 +235,129 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       deletePreset: (id) =>
         update((s) => ({ ...s, presets: s.presets.filter((p) => p.id !== id) })),
 
-      replaceState: (s) => setState(s),
+      addSession: (session) =>
+        update((s) => ({
+          ...s,
+          pullSessions: [
+            ...s.pullSessions,
+            { ...session, id: genId("sess"), createdAt: new Date().toISOString() },
+          ],
+        })),
+      updateSession: (id, partial) =>
+        update((s) => ({
+          ...s,
+          pullSessions: s.pullSessions.map((x) => (x.id === id ? { ...x, ...partial } : x)),
+        })),
+      deleteSession: (id) =>
+        update((s) => ({ ...s, pullSessions: s.pullSessions.filter((x) => x.id !== id) })),
+
+      setProjection: (partial) =>
+        update((s) => ({ ...s, projection: { ...s.projection, ...partial } })),
+      addPatch: () =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            patches: [
+              ...s.projection.patches,
+              {
+                id: genId("patch"),
+                name: `Patch ${s.projection.patches.length + 1}`,
+                durationDays: s.settings.patchDurationDays,
+                tempIncome: 20,
+                expenses: [],
+              },
+            ],
+          },
+        })),
+      updatePatch: (id, partial) =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            patches: s.projection.patches.map((p) => (p.id === id ? { ...p, ...partial } : p)),
+          },
+        })),
+      deletePatch: (id) =>
+        update((s) => ({
+          ...s,
+          projection: { ...s.projection, patches: s.projection.patches.filter((p) => p.id !== id) },
+        })),
+      closePatch: (id) =>
+        update((s) => {
+          const patch = s.projection.patches.find((p) => p.id === id);
+          if (!patch) return s;
+          const startTotal =
+            s.projection.startPulls + Math.floor((s.projection.polychromes + s.projection.monochromes) / 160);
+          const income = patchIncome(s, patch);
+          const spent = patchSpent(patch);
+          const balanceAfter = startTotal + income - spent;
+          const archived: ArchivedPatch = {
+            id: genId("arch"),
+            name: patch.name,
+            income,
+            spent,
+            closedAt: new Date().toISOString(),
+          };
+          return {
+            ...s,
+            archivedPatches: [...s.archivedPatches, archived],
+            projection: {
+              ...s.projection,
+              startPulls: Math.max(0, balanceAfter),
+              polychromes: 0,
+              monochromes: 0,
+              patches: s.projection.patches.filter((p) => p.id !== id),
+            },
+          };
+        }),
+      addExpense: (patchId, e) =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            patches: s.projection.patches.map((p) =>
+              p.id === patchId ? { ...p, expenses: [...p.expenses, { ...e, id: genId("exp") }] } : p,
+            ),
+          },
+        })),
+      updateExpense: (patchId, expenseId, partial) =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            patches: s.projection.patches.map((p) =>
+              p.id === patchId
+                ? { ...p, expenses: p.expenses.map((e) => (e.id === expenseId ? { ...e, ...partial } : e)) }
+                : p,
+            ),
+          },
+        })),
+      deleteExpense: (patchId, expenseId) =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            patches: s.projection.patches.map((p) =>
+              p.id === patchId ? { ...p, expenses: p.expenses.filter((e) => e.id !== expenseId) } : p,
+            ),
+          },
+        })),
+
+      addPermanentIncome: (i) =>
+        update((s) => ({
+          ...s,
+          permanentIncomes: [...s.permanentIncomes, { ...i, id: genId("inc") }],
+        })),
+      updatePermanentIncome: (id, partial) =>
+        update((s) => ({
+          ...s,
+          permanentIncomes: s.permanentIncomes.map((x) => (x.id === id ? { ...x, ...partial } : x)),
+        })),
+      deletePermanentIncome: (id) =>
+        update((s) => ({ ...s, permanentIncomes: s.permanentIncomes.filter((x) => x.id !== id) })),
+
+      replaceState: (s) => setState(migrate(s)),
       resetState: () => setState(makeInitialState()),
     };
   }, [state, ready, update]);

@@ -71,6 +71,8 @@ export interface FarmObjective {
   createdAt: string;
 }
 
+export type ThemeMode = "light" | "dark" | "system";
+
 export interface Settings {
   dailyEnergy: number; // default 320
   discRuns: number; // runs/day, 60 energy each
@@ -78,6 +80,70 @@ export interface Settings {
   backupBatteries: number;
   patchDurationDays: number; // default 42
   safetyMargin: number; // pulls
+  themeMode: ThemeMode;
+  avgDesiredCost: number; // fallback avg pulls for a desired character
+}
+
+// ---------------------------------------------------------------------------
+// Historique de pulls
+// ---------------------------------------------------------------------------
+export type BannerType = "char_limited" | "engine_limited" | "bangboo" | "permanent";
+export type Outcome = "won" | "lost" | "guaranteed" | "na";
+
+export interface SRankResult {
+  id: string;
+  name: string;
+  position: number; // cumulative pull within the session
+  isDesired: boolean;
+  outcome: Outcome; // 50/50 (char) or 75/25 (engine) result
+}
+
+export interface PullSession {
+  id: string;
+  banner: BannerType;
+  date: string;
+  pulls: number;
+  results: SRankResult[];
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Projection de pulls (financial planner)
+// ---------------------------------------------------------------------------
+export interface PermanentIncome {
+  id: string;
+  name: string;
+  pullsPerPatch: number; // at the default patch duration
+}
+
+export interface ProjExpense {
+  id: string;
+  name: string;
+  pullCost: number;
+  actualCost: number | null; // set once the banner is finished
+}
+
+export interface ProjPatch {
+  id: string;
+  name: string;
+  durationDays: number;
+  tempIncome: number; // pulls from events
+  expenses: ProjExpense[];
+}
+
+export interface Projection {
+  startPulls: number;
+  polychromes: number;
+  monochromes: number;
+  patches: ProjPatch[];
+}
+
+export interface ArchivedPatch {
+  id: string;
+  name: string;
+  income: number;
+  spent: number;
+  closedAt: string;
 }
 
 export interface AppState {
@@ -87,4 +153,8 @@ export interface AppState {
   agents: Agent[];
   objectives: FarmObjective[]; // order = priority (index 0 = highest)
   commonStock: Record<string, number>; // materialId -> qty
+  pullSessions: PullSession[];
+  permanentIncomes: PermanentIncome[];
+  projection: Projection;
+  archivedPatches: ArchivedPatch[];
 }
