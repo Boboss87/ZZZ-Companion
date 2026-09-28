@@ -317,6 +317,7 @@ export function makeInitialState(): AppState {
       avgDesiredCost: 130,
       autoBackup: true,
     },
+    optionLists: defaultOptionLists(),
     presets: DEFAULT_PRESETS,
     agents: SEED_AGENTS,
     objectives: [
@@ -387,3 +388,26 @@ export const SPECIALIZATIONS: string[] = [
   "Rupture",
 ];
 export const RANKS: string[] = ["S", "A"];
+
+// Build stat option lists (dropdowns) — editable in "Données du jeu".
+export const MAIN_STATS: string[] = [
+  "HP", "HP%", "ATK", "ATK%", "DEF", "DEF%",
+  "Crit RATE", "Crit ATK", "Anomaly Proficiency", "Anomaly Mastery",
+  "PEN Ratio", "Regen d'énergie", "Impact",
+  "Dégâts élément", "Dégâts physique", "Dégâts feu", "Dégâts glace",
+  "Dégâts électrique", "Dégâts éther",
+];
+export const SUB_STATS: string[] = [
+  "HP", "HP%", "ATK", "ATK%", "DEF", "DEF%",
+  "Crit RATE", "Crit ATK", "Anomaly Proficiency", "PEN",
+];
+
+export function defaultOptionLists() {
+  return {
+    elements: [...ELEMENTS],
+    specializations: [...SPECIALIZATIONS],
+    discSets: [...DISC_SETS],
+    mainStats: [...MAIN_STATS],
+    subStats: [...SUB_STATS],
+  };
+}

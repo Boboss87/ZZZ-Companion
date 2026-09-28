@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowCounterClockwise, CaretLeft, Lightning } from "phosphor-react-native";
+import { ArrowCounterClockwise, CaretLeft, Lightning, Plus, Trash } from "phosphor-react-native";
 import React, { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,10 +7,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet } from "@/src/components/BottomSheet";
 import { AppText, Card, PrimaryButton, haptic, useToast } from "@/src/components/ui";
 import { useStore } from "@/src/store/AppStore";
-import { FarmYield } from "@/src/store/types";
+import { FarmYield, OptionLists } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 type ProgTable = "agentProg" | "engineProg" | "skillProg" | "coreProg";
+
+const OPTION_LISTS: { key: keyof OptionLists; title: string; subtitle: string }[] = [
+  { key: "elements", title: "Éléments", subtitle: "Attributs élémentaires des agents." },
+  { key: "specializations", title: "Spécialisations", subtitle: "Rôles / styles des agents." },
+  { key: "discSets", title: "Sets de disques", subtitle: "Sets disponibles pour les builds." },
+  { key: "mainStats", title: "Stats principales (build)", subtitle: "Choix pour les disques 4 / 5 / 6." },
+  { key: "subStats", title: "Sous-stats (build)", subtitle: "Choix pour les sous-stats prioritaires." },
+];
 
 const YIELD_FIELDS: { key: keyof FarmYield; label: string }[] = [
   { key: "energy", label: "Énergie dépensée (base)" },
@@ -63,6 +71,7 @@ export default function GameDataScreen() {
   const toast = useToast();
   const store = useStore();
   const cfg = store.state.gameConfig;
+  const cfgLists = store.state.optionLists;
   const [confirmReset, setConfirmReset] = useState(false);
 
   return (
@@ -133,6 +142,22 @@ export default function GameDataScreen() {
             </Card>
           );
         })}
+
+        {/* Editable option lists (dropdown sources) */}
+        <AppText variant="subtitle" style={{ marginTop: spacing.sm }}>Listes personnalisables</AppText>
+        <AppText variant="caption" color={colors.muted}>
+          Ces listes alimentent les menus déroulants des fiches d'agent et des builds.
+        </AppText>
+        {OPTION_LISTS.map((l) => (
+          <EditableList
+            key={l.key}
+            title={l.title}
+            subtitle={l.subtitle}
+            items={cfgLists[l.key]}
+            onChange={(items) => store.setOptionList(l.key, items)}
+            testID={`optlist-${l.key}`}
+          />
+        ))}
       </ScrollView>
 
       <BottomSheet visible={confirmReset} onClose={() => setConfirmReset(false)} title="Réinitialiser le barème ?" scroll={false}>
@@ -165,6 +190,48 @@ function NumberCell({ value, onChange, testID, wide }: { value: number; onChange
       keyboardType="decimal-pad"
       placeholderTextColor={colors.muted}
       style={[styles.cell, wide && { minWidth: 120, textAlign: "right" }]}
+    />
+  );
+}
+
+function EditableList({ title, subtitle, items, onChange, testID }: { title: string; subtitle?: string; items: string[]; onChange: (items: string[]) => void; testID?: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const setAt = (i: number, v: string) => onChange(items.map((x, idx) => (idx === i ? v : x)));
+  const removeAt = (i: number) => onChange(items.filter((_, idx) => idx !== i));
+  return (
+    <Card testID={testID}>
+      <AppText variant="subtitle">{title}</AppText>
+      {subtitle ? <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>{subtitle}</AppText> : null}
+      {items.map((it, i) => (
+        <View key={i} style={styles.listRow}>
+          <ListInput value={it} onChange={(v) => setAt(i, v)} testID={testID ? `${testID}-input-${i}` : undefined} />
+          <Pressable testID={testID ? `${testID}-del-${i}` : undefined} onPress={() => { haptic.light(); removeAt(i); }} style={styles.listDel} hitSlop={8}>
+            <Trash size={16} color={colors.error} />
+          </Pressable>
+        </View>
+      ))}
+      <Pressable testID={testID ? `${testID}-add` : undefined} onPress={() => { haptic.light(); onChange([...items, ""]); }} style={styles.listAdd}>
+        <Plus size={16} color={colors.brandPrimary} weight="bold" />
+        <AppText variant="label" color={colors.brandPrimary}>AJOUTER</AppText>
+      </Pressable>
+    </Card>
+  );
+}
+
+function ListInput({ value, onChange, testID }: { value: string; onChange: (v: string) => void; testID?: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const [t, setT] = useState(value);
+  React.useEffect(() => setT(value), [value]);
+  return (
+    <TextInput
+      testID={testID}
+      value={t}
+      onChangeText={(x) => { setT(x); onChange(x); }}
+      placeholder="Nom…"
+      placeholderTextColor={colors.muted}
+      style={styles.listInput}
     />
   );
 }
@@ -211,5 +278,40 @@ const useStyles = makeStyles((c) => ({
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     textAlign: "center",
+  },
+  listRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+  listInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: c.onSurface,
+    backgroundColor: c.surfaceTertiary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  listDel: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
+    backgroundColor: c.surfaceTertiary,
+  },
+  listAdd: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: c.brandPrimary,
+    marginTop: spacing.xs,
   },
 }));

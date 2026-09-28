@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import { CaretDown, Check } from "phosphor-react-native";
 import React, {
   createContext,
   useCallback,
@@ -456,6 +457,140 @@ export function DateField({
     />
   );
 }
+
+// ---------------------------------------------------------------------------
+// Select (inline accordion dropdown) — single choice
+// ---------------------------------------------------------------------------
+export function Select({
+  value,
+  options,
+  onChange,
+  placeholder = "Choisir…",
+  testID,
+}: {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+  testID?: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useSelectStyles();
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable testID={testID} onPress={() => { haptic.select(); setOpen((o) => !o); }} style={styles.control}>
+        <AppText variant="body" color={value ? colors.onSurface : colors.muted} numberOfLines={1} style={{ flex: 1 }}>
+          {value || placeholder}
+        </AppText>
+        <CaretDown size={16} color={colors.muted} weight="bold" />
+      </Pressable>
+      {open ? (
+        <View style={styles.menu}>
+          {options.length === 0 ? (
+            <AppText variant="caption" color={colors.muted} style={{ padding: spacing.sm }}>
+              Aucune option — ajoute-en dans « Données du jeu ».
+            </AppText>
+          ) : (
+            options.map((o) => (
+              <Pressable
+                key={o}
+                testID={testID ? `${testID}-opt-${o}` : undefined}
+                onPress={() => { haptic.light(); onChange(o); setOpen(false); }}
+                style={styles.opt}
+              >
+                <AppText variant="body" color={o === value ? colors.brandPrimary : colors.onSurface} style={{ flex: 1 }}>{o}</AppText>
+                {o === value ? <Check size={16} color={colors.brandPrimary} weight="bold" /> : null}
+              </Pressable>
+            ))
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MultiSelect (inline accordion dropdown) — multiple choices
+// ---------------------------------------------------------------------------
+export function MultiSelect({
+  values,
+  options,
+  onChange,
+  placeholder = "Choisir…",
+  testID,
+}: {
+  values: string[];
+  options: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+  testID?: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useSelectStyles();
+  const [open, setOpen] = useState(false);
+  const toggle = (o: string) =>
+    onChange(values.includes(o) ? values.filter((x) => x !== o) : [...values, o]);
+  return (
+    <View>
+      <Pressable testID={testID} onPress={() => { haptic.select(); setOpen((o) => !o); }} style={styles.control}>
+        <AppText variant="body" color={values.length ? colors.onSurface : colors.muted} numberOfLines={2} style={{ flex: 1 }}>
+          {values.length ? values.join(", ") : placeholder}
+        </AppText>
+        <CaretDown size={16} color={colors.muted} weight="bold" />
+      </Pressable>
+      {open ? (
+        <View style={styles.menu}>
+          {options.map((o) => {
+            const sel = values.includes(o);
+            return (
+              <Pressable
+                key={o}
+                testID={testID ? `${testID}-opt-${o}` : undefined}
+                onPress={() => { haptic.light(); toggle(o); }}
+                style={styles.opt}
+              >
+                <AppText variant="body" color={sel ? colors.brandPrimary : colors.onSurface} style={{ flex: 1 }}>{o}</AppText>
+                {sel ? <Check size={16} color={colors.brandPrimary} weight="bold" /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const useSelectStyles = makeStyles((c) => ({
+  control: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: c.surfaceTertiary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+  },
+  menu: {
+    marginTop: spacing.xs,
+    backgroundColor: c.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    overflow: "hidden",
+  },
+  opt: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: c.divider,
+  },
+}));
 
 // ---------------------------------------------------------------------------
 // Empty state

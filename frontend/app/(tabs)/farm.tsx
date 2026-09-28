@@ -197,6 +197,10 @@ function FarmList({
       showsVerticalScrollIndicator={false}
       contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.sm, paddingBottom: 140 }}
     >
+      <View style={{ marginBottom: spacing.xs }}>
+        <AppText variant="subtitle">État des stocks</AppText>
+        <AppText variant="caption" color={colors.muted}>Ce qu'il te reste à farmer, par priorité. Touche une ligne pour saisir ton stock.</AppText>
+      </View>
       {rows.map((r) => (
         <Pressable
           key={r.key}

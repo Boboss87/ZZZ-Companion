@@ -5,10 +5,10 @@ import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/src/components/BottomSheet";
-import { AppText, Badge, Card, Chip, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
+import { AppText, Badge, Card, Chip, DateField, MultiSelect, PrimaryButton, Select, Stepper, haptic, useToast } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
-import { DISC_SETS, ELEMENTS, RANKS, SPECIALIZATIONS } from "@/src/store/gameData";
-import { Build } from "@/src/store/types";
+import { RANKS } from "@/src/store/gameData";
+import { Build, OptionLists } from "@/src/store/types";
 import { ELEMENT_COLORS, fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 type Tab = "general" | "collection" | "builds" | "notes";
@@ -36,6 +36,7 @@ export default function AgentDetailScreen() {
   }
 
   const el = ELEMENT_COLORS[agent.element] ?? colors.brandPrimary;
+  const lists = store.state.optionLists;
   const upd = (partial: Partial<typeof agent>) => store.updateAgent(agent.id, partial);
 
   const deleteAgent = () => {
@@ -93,20 +94,14 @@ export default function AgentDetailScreen() {
             <Card>
               <EditText label="NOM" value={agent.name} onChange={(t) => upd({ name: t })} />
               <ChipSelect label="RANG" options={RANKS} value={agent.rank} onChange={(v) => upd({ rank: v as any })} />
-              <ChipSelect label="ÉLÉMENT" options={ELEMENTS} value={agent.element} onChange={(v) => upd({ element: v as any })} />
-              <ChipSelect label="SPÉCIALISATION" options={SPECIALIZATIONS} value={agent.specialization} onChange={(v) => upd({ specialization: v as any })} />
+              <SelectField label="ÉLÉMENT" options={lists.elements} value={agent.element} onChange={(v) => upd({ element: v as any })} testID="select-element" />
+              <SelectField label="SPÉCIALISATION" options={lists.specializations} value={agent.specialization} onChange={(v) => upd({ specialization: v as any })} testID="select-spec" />
               <EditText label="FACTION" value={agent.faction} onChange={(t) => upd({ faction: t })} />
             </Card>
             <Card>
               <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Historique des bannières</AppText>
-              <EditText label="PREMIÈRE / SORTIE (AAAA-MM-JJ)" value={agent.releaseDate} onChange={(t) => upd({ releaseDate: t })} />
-              <EditText label="DERNIÈRE BANNIÈRE" value={agent.lastBanner} onChange={(t) => upd({ lastBanner: t })} />
-            </Card>
-            <Card>
-              <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Données de farm (interne)</AppText>
-              <EditText label="MATÉRIAU DE PROMOTION" value={agent.promoMaterial} onChange={(t) => upd({ promoMaterial: t })} />
-              <EditText label="MATÉRIAU DE COMPÉTENCE" value={agent.skillMaterial} onChange={(t) => upd({ skillMaterial: t })} />
-              <EditText label="MATÉRIAU DE BOSS" value={agent.bossMaterial} onChange={(t) => upd({ bossMaterial: t })} />
+              <DateFieldRow label="PREMIÈRE / SORTIE (JJ.MM.AAAA)" value={agent.releaseDate} onChange={(t) => upd({ releaseDate: t })} testID="agent-release" />
+              <DateFieldRow label="DERNIÈRE BANNIÈRE (JJ.MM.AAAA)" value={agent.lastBanner} onChange={(t) => upd({ lastBanner: t })} testID="agent-lastbanner" />
             </Card>
           </>
         ) : null}
@@ -211,13 +206,12 @@ export default function AgentDetailScreen() {
         ) : null}
       </ScrollView>
 
-      <BuildSheet editing={editingBuild} onClose={() => setEditingBuild(null)} onSave={saveBuild} />
+      <BuildSheet editing={editingBuild} onClose={() => setEditingBuild(null)} onSave={saveBuild} lists={lists} />
     </View>
   );
 }
 
-function BuildSheet({ editing, onClose, onSave }: { editing: Build | null; onClose: () => void; onSave: (b: Build) => void }) {
-  const { colors } = useTheme();
+function BuildSheet({ editing, onClose, onSave, lists }: { editing: Build | null; onClose: () => void; onSave: (b: Build) => void; lists: OptionLists }) {
   const [draft, setDraft] = useState<Build | null>(editing);
   React.useEffect(() => setDraft(editing), [editing]);
   if (!draft) return null;
@@ -226,22 +220,12 @@ function BuildSheet({ editing, onClose, onSave }: { editing: Build | null; onClo
   return (
     <BottomSheet visible={!!editing} onClose={onClose} title="Build">
       <EditText label="NOM" value={draft.name} onChange={(t) => set({ name: t })} />
-      <AppText variant="label" color={colors.muted}>SET 4 PIÈCES</AppText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {DISC_SETS.map((s) => (
-          <Chip key={s} label={s} selected={draft.set4 === s} onPress={() => set({ set4: s })} />
-        ))}
-      </ScrollView>
-      <AppText variant="label" color={colors.muted}>SET 2 PIÈCES</AppText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {DISC_SETS.map((s) => (
-          <Chip key={s} label={s} selected={draft.set2 === s} onPress={() => set({ set2: s })} />
-        ))}
-      </ScrollView>
-      <EditText label="STAT PRINCIPALE — DISQUE 4" value={draft.mainStat4} onChange={(t) => set({ mainStat4: t })} />
-      <EditText label="STAT PRINCIPALE — DISQUE 5" value={draft.mainStat5} onChange={(t) => set({ mainStat5: t })} />
-      <EditText label="STAT PRINCIPALE — DISQUE 6" value={draft.mainStat6} onChange={(t) => set({ mainStat6: t })} />
-      <EditText label="SOUS-STATS (séparées par des virgules)" value={draft.substats.join(", ")} onChange={(t) => set({ substats: t.split(",").map((x) => x.trim()).filter(Boolean) })} />
+      <SelectField label="SET 4 PIÈCES" options={lists.discSets} value={draft.set4} onChange={(v) => set({ set4: v })} testID="build-set4" />
+      <SelectField label="SET 2 PIÈCES" options={lists.discSets} value={draft.set2} onChange={(v) => set({ set2: v })} testID="build-set2" />
+      <SelectField label="STAT PRINCIPALE — DISQUE 4" options={lists.mainStats} value={draft.mainStat4} onChange={(v) => set({ mainStat4: v })} testID="build-stat4" />
+      <SelectField label="STAT PRINCIPALE — DISQUE 5" options={lists.mainStats} value={draft.mainStat5} onChange={(v) => set({ mainStat5: v })} testID="build-stat5" />
+      <SelectField label="STAT PRINCIPALE — DISQUE 6" options={lists.mainStats} value={draft.mainStat6} onChange={(v) => set({ mainStat6: v })} testID="build-stat6" />
+      <MultiSelectField label="SOUS-STATS PRIORITAIRES" options={lists.subStats} values={draft.substats} onChange={(v) => set({ substats: v })} testID="build-substats" />
       <EditText label="PRIORITÉ DES COMPÉTENCES" value={draft.skillPriority} onChange={(t) => set({ skillPriority: t })} />
       <EditText label="MOTEUR RECOMMANDÉ" value={draft.engine} onChange={(t) => set({ engine: t })} />
       <EditText label="ALTERNATIVES" value={draft.alternatives} onChange={(t) => set({ alternatives: t })} />
@@ -249,6 +233,37 @@ function BuildSheet({ editing, onClose, onSave }: { editing: Build | null; onClo
       <ToggleRow label="Build officiel (référence)" value={draft.official} onChange={(v) => set({ official: v })} />
       <PrimaryButton label="ENREGISTRER LE BUILD" onPress={() => onSave(draft)} testID="save-build-button" />
     </BottomSheet>
+  );
+}
+
+function SelectField({ label, value, options, onChange, placeholder, testID }: { label: string; value: string; options: string[]; onChange: (v: string) => void; placeholder?: string; testID?: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ marginBottom: spacing.md }}>
+      <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>{label}</AppText>
+      <Select value={value} options={options} onChange={onChange} placeholder={placeholder} testID={testID} />
+    </View>
+  );
+}
+
+function MultiSelectField({ label, values, options, onChange, testID }: { label: string; values: string[]; options: string[]; onChange: (v: string[]) => void; testID?: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ marginBottom: spacing.md }}>
+      <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>{label}</AppText>
+      <MultiSelect values={values} options={options} onChange={onChange} testID={testID} />
+    </View>
+  );
+}
+
+function DateFieldRow({ label, value, onChange, testID }: { label: string; value: string; onChange: (t: string) => void; testID?: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={{ marginBottom: spacing.md }}>
+      <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>{label}</AppText>
+      <DateField valueISO={value} onChange={onChange} style={styles.input} testID={testID} />
+    </View>
   );
 }
 

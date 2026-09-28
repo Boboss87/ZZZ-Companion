@@ -176,9 +176,19 @@ export interface GameConfig {
   coreProg: CoreProgRow[]; // 6 rows (A .. F)
 }
 
+// User-editable option lists (dropdown choices across the app).
+export interface OptionLists {
+  elements: string[];
+  specializations: string[];
+  discSets: string[];
+  mainStats: string[];
+  subStats: string[];
+}
+
 export interface AppState {
   version: number;
   settings: Settings;
+  optionLists: OptionLists;
   presets: Preset[];
   agents: Agent[];
   objectives: FarmObjective[]; // order = priority (index 0 = highest)

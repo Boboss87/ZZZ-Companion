@@ -14,9 +14,11 @@ import { patchIncome, patchSpent } from "./projectionEngine";
 import {
   Agent,
   AppState,
+  ArchivedPatch,
   Build,
   FarmObjective,
   FarmYield,
+  OptionLists,
   PermanentIncome,
   Preset,
   ProjExpense,
@@ -41,6 +43,7 @@ function migrate(saved: AppState): AppState {
     ...base,
     ...saved,
     settings: { ...base.settings, ...saved.settings },
+    optionLists: { ...base.optionLists, ...(saved.optionLists ?? {}) },
     pullSessions: saved.pullSessions ?? base.pullSessions,
     permanentIncomes:
       saved.permanentIncomes && (saved.permanentIncomes[0] as { polyPerDay?: unknown } | undefined)?.polyPerDay !== undefined
@@ -119,6 +122,8 @@ interface StoreContextValue {
     value: number,
   ) => void;
   resetGameConfig: () => void;
+  // editable option lists (dropdowns)
+  setOptionList: (key: keyof OptionLists, values: string[]) => void;
   // data
   replaceState: (s: AppState) => void;
   resetState: () => void;
@@ -395,6 +400,9 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           return { ...s, gameConfig: { ...s.gameConfig, [table]: rows } };
         }),
       resetGameConfig: () => update((s) => ({ ...s, gameConfig: DEFAULT_GAME_CONFIG })),
+
+      setOptionList: (key, values) =>
+        update((s) => ({ ...s, optionLists: { ...s.optionLists, [key]: values } })),
 
       replaceState: (s) => {
         setState(migrate(s));

@@ -162,3 +162,29 @@
 ## agent_communication:
 ##     -agent: "main"
 ##     -message: "Frontend-only refinements. Please test: (1) 6-tab bottom bar navigation incl. Projection & Historique, and Home cards still open those tabs; (2) DateField in Add Session and Add Objective accepts digits and formats JJ.MM.AAAA, saves, and re-displays correctly (stored ISO). Verify the History pity/50-50 example still computes after entering date via new field; (3) InlineNumber exact entry for patch income, patch expense cost, and session pulls persists and recomputes projection/stats; (4) ZZZdex sort chip cycles Récent/Nom/Rareté and reorders; reduced filters (no rank chips) still filter. App is 100% local (AsyncStorage/IndexedDB), no backend."
+
+## ITERATION 4 — editable option lists + dropdowns + banner dates + stock title
+## frontend:
+##   - task: "Banner dates JJ.MM.AAAA in agent detail + remove internal-farm card"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/agent/[id].tsx"
+##     needs_retesting: true
+##   - task: "Dropdowns (Select/MultiSelect) fed by editable option lists"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/components/ui.tsx, frontend/app/agent/[id].tsx"
+##     needs_retesting: true
+##   - task: "Editable option lists in Données du jeu"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/gamedata.tsx, frontend/src/store/AppStore.tsx, frontend/src/store/types.ts, frontend/src/store/gameData.ts"
+##     needs_retesting: true
+##   - task: "État des stocks title on farm list"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/farm.tsx"
+##     needs_retesting: true
+## agent_communication:
+##     -agent: "main"
+##     -message: "Iteration 4: added user-editable option lists (elements, specializations, disc sets, build main stats, build sub stats) persisted in state.optionLists, edited via new EditableList sections in Données du jeu. Agent detail Element/Specialization and build Set4/Set2/mainStat4-6 are now Select dropdowns; build substats is a MultiSelect; all fed from optionLists. Banner dates (release/lastBanner) now use DateField (JJ.MM.AAAA display + ISO storage). Removed the 'Données de farm (interne)' card. Added 'État des stocks' title atop the farm list."

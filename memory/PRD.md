@@ -68,6 +68,15 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 - [x] Correctif : `pointerEvents` du toast déplacé dans le style (fin de dépréciation RN).
 - [x] Testé end-to-end (testing_agent iteration_3) — les 7 points passent (navigation 6 onglets, DateField, InlineNumber, exemple pity 8 / moyenne 56 / souhaité 112 / 50-50 0%, tri ZZZdex, persistance après reload).
 
+## Implémenté — itération 7 (2026-06) : listes déroulantes éditables + dates de bannière + titre stocks
+- [x] Dates de bannière (première sortie & dernière bannière) de la fiche d'agent affichées et saisies en JJ.MM.AAAA (composant DateField, stockage ISO).
+- [x] Carte « Données de farm (interne) » supprimée de l'onglet Général de la fiche d'agent.
+- [x] Nouveaux composants `Select` (choix unique) et `MultiSelect` (choix multiple) — menus déroulants accordéon inline.
+- [x] Fiche d'agent : Élément et Spécialisation en menus déroulants ; Builds : Set 4 pièces, Set 2 pièces, Stats principales disque 4/5/6 en menus déroulants, Sous-stats prioritaires en multi-sélection.
+- [x] Listes personnalisables persistées dans `state.optionLists` (éléments, spécialisations, sets de disques, stats principales, sous-stats), éditables (ajout/rename/suppression) via de nouvelles sections dans « Données du jeu ». Les menus déroulants se remplissent depuis ces listes.
+- [x] Titre « État des stocks » + sous-titre ajouté en tête de la liste de farm.
+- [x] Testé end-to-end (testing_agent iteration_4) — les 7 points passent, y compris l'ajout d'une option qui apparaît dans le menu déroulant et la persistance après rechargement.
+
 ## Backlog priorisé
 ### P1 (modules restants du cahier des charges)
 - Assistant de tri des Discs (regroupement des builds par set/combinaison de stats, filtres agents/builds).
