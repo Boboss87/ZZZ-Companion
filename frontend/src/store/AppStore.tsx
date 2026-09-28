@@ -16,14 +16,13 @@ import {
   AppState,
   Build,
   FarmObjective,
-  FarmRate,
+  FarmYield,
   PermanentIncome,
   Preset,
   ProjExpense,
   ProjPatch,
   Projection,
   PullSession,
-  RankBareme,
   Settings,
 } from "./types";
 
@@ -43,10 +42,27 @@ function migrate(saved: AppState): AppState {
     ...saved,
     settings: { ...base.settings, ...saved.settings },
     pullSessions: saved.pullSessions ?? base.pullSessions,
-    permanentIncomes: saved.permanentIncomes ?? base.permanentIncomes,
-    projection: saved.projection ?? base.projection,
+    permanentIncomes:
+      saved.permanentIncomes && (saved.permanentIncomes[0] as { polyPerDay?: unknown } | undefined)?.polyPerDay !== undefined
+        ? saved.permanentIncomes
+        : base.permanentIncomes,
+    projection: saved.projection
+      ? {
+          masterTapes:
+            (saved.projection as { masterTapes?: number; startPulls?: number }).masterTapes ??
+            (saved.projection as { startPulls?: number }).startPulls ??
+            0,
+          polychromes: saved.projection.polychromes ?? 0,
+          monochromes: saved.projection.monochromes ?? 0,
+          residualSignals: (saved.projection as { residualSignals?: number }).residualSignals ?? 0,
+          patches: saved.projection.patches ?? base.projection.patches,
+        }
+      : base.projection,
     archivedPatches: saved.archivedPatches ?? base.archivedPatches,
-    gameConfig: saved.gameConfig ?? base.gameConfig,
+    gameConfig:
+      saved.gameConfig && (saved.gameConfig as { farmYield?: unknown }).farmYield && (saved.gameConfig as { agentProg?: unknown }).agentProg
+        ? saved.gameConfig
+        : base.gameConfig,
   };
 }
 
@@ -95,8 +111,13 @@ interface StoreContextValue {
   updatePermanentIncome: (id: string, partial: Partial<PermanentIncome>) => void;
   deletePermanentIncome: (id: string) => void;
   // editable game data (barème)
-  setFarmRate: (key: keyof FarmRate, value: number) => void;
-  setBareme: (rank: "S" | "A", key: keyof RankBareme, value: number) => void;
+  setFarmYield: (key: keyof FarmYield, value: number) => void;
+  setProgRow: (
+    table: "agentProg" | "engineProg" | "skillProg" | "coreProg",
+    index: number,
+    key: string,
+    value: number,
+  ) => void;
   resetGameConfig: () => void;
   // data
   replaceState: (s: AppState) => void;
@@ -303,28 +324,17 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
         update((s) => {
           const patch = s.projection.patches.find((p) => p.id === id);
           if (!patch) return s;
-          const startTotal =
-            s.projection.startPulls + Math.floor((s.projection.polychromes + s.projection.monochromes) / 160);
-          const income = patchIncome(s, patch);
-          const spent = patchSpent(patch);
-          const balanceAfter = startTotal + income - spent;
           const archived: ArchivedPatch = {
             id: genId("arch"),
             name: patch.name,
-            income,
-            spent,
+            income: patchIncome(s, patch),
+            spent: patchSpent(patch),
             closedAt: new Date().toISOString(),
           };
           return {
             ...s,
             archivedPatches: [...s.archivedPatches, archived],
-            projection: {
-              ...s.projection,
-              startPulls: Math.max(0, balanceAfter),
-              polychromes: 0,
-              monochromes: 0,
-              patches: s.projection.patches.filter((p) => p.id !== id),
-            },
+            projection: { ...s.projection, patches: s.projection.patches.filter((p) => p.id !== id) },
           };
         }),
       addExpense: (patchId, e) =>
@@ -373,22 +383,17 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
       deletePermanentIncome: (id) =>
         update((s) => ({ ...s, permanentIncomes: s.permanentIncomes.filter((x) => x.id !== id) })),
 
-      setFarmRate: (key, value) =>
+      setFarmYield: (key, value) =>
         update((s) => ({
           ...s,
-          gameConfig: { ...s.gameConfig, farmRate: { ...s.gameConfig.farmRate, [key]: value } },
+          gameConfig: { ...s.gameConfig, farmYield: { ...s.gameConfig.farmYield, [key]: value } },
         })),
-      setBareme: (rank, key, value) =>
-        update((s) => ({
-          ...s,
-          gameConfig: {
-            ...s.gameConfig,
-            ranks: {
-              ...s.gameConfig.ranks,
-              [rank]: { ...s.gameConfig.ranks[rank], [key]: value },
-            },
-          },
-        })),
+      setProgRow: (table, index, key, value) =>
+        update((s) => {
+          const rows = [...(s.gameConfig[table] as Record<string, number>[])];
+          rows[index] = { ...rows[index], [key]: value };
+          return { ...s, gameConfig: { ...s.gameConfig, [table]: rows } };
+        }),
       resetGameConfig: () => update((s) => ({ ...s, gameConfig: DEFAULT_GAME_CONFIG })),
 
       replaceState: (s) => {

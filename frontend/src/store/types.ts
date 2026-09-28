@@ -114,7 +114,7 @@ export interface PullSession {
 export interface PermanentIncome {
   id: string;
   name: string;
-  pullsPerPatch: number; // at the default patch duration
+  polyPerDay: number; // polychromes per day
 }
 
 export interface ProjExpense {
@@ -133,9 +133,10 @@ export interface ProjPatch {
 }
 
 export interface Projection {
-  startPulls: number;
+  masterTapes: number;
   polychromes: number;
   monochromes: number;
+  residualSignals: number;
   patches: ProjPatch[];
 }
 
@@ -148,39 +149,31 @@ export interface ArchivedPatch {
 }
 
 // ---------------------------------------------------------------------------
-// Editable game data (barème de farm)
+// Editable game data (barème de farm) — per-level tables (source of truth).
 // ---------------------------------------------------------------------------
-// Units obtained per 60-energy run for each material type (used for time estimates).
-export interface FarmRate {
+// Yields obtained for `energy` spent (averages, used for time estimates).
+export interface FarmYield {
+  energy: number;
   dennies: number;
-  logs: number; // character EXP
-  power: number; // engine EXP
-  hamster: number; // skill books
-  promo: number; // agent promotion material
-  skillMat: number; // expert skill material
-  boss: number; // notorious boss material
+  logs: number; // journaux (character EXP)
+  power: number; // modules (engine EXP)
+  sceaux: number; // agent promotion (specialization)
+  composants: number; // engine promotion (specialization)
+  puces: number; // skill chips (element)
+  expert: number; // core expert (agent)
 }
 
-// Full-build totals for one rank (character 60 + engine 60 + skills 1->12 + core A->F).
-export interface RankBareme {
-  charDennies: number;
-  charExp: number;
-  charPromo: number;
-  engineDennies: number;
-  engineExp: number;
-  skillDennies: number; // per single skill, 1 -> 12
-  skillBooks: number;
-  skillExpert: number;
-  skillBoss: number;
-  coreDennies: number; // A -> F total
-  coreBooks: number;
-  coreExpert: number;
-  coreBoss: number;
-}
+export interface AgentProgRow { denny: number; journaux: number; sceaux: number }
+export interface EngineProgRow { denny: number; modules: number; composants: number }
+export interface SkillProgRow { denny: number; puces: number; hamster: number }
+export interface CoreProgRow { denny: number; expert: number; infame: number }
 
 export interface GameConfig {
-  farmRate: FarmRate;
-  ranks: { S: RankBareme; A: RankBareme };
+  farmYield: FarmYield;
+  agentProg: AgentProgRow[]; // 6 breakpoints (1-10 .. 50-60)
+  engineProg: EngineProgRow[]; // 6 breakpoints
+  skillProg: SkillProgRow[]; // 11 rows (1-2 .. 11-12), per single skill
+  coreProg: CoreProgRow[]; // 6 rows (A .. F)
 }
 
 export interface AppState {

@@ -101,3 +101,64 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+## user_problem_statement: "ZZZ Companion — refinements batch (A→G): move Projection & Historique into the bottom tab bar; display/capture dates in JJ.MM.AAAA; show 'Délai restant' on Home; exact manual number inputs for patch revenues/expenses and session pull count; ZZZdex reduced filters + sort by banner date; agent names readable in light theme."
+
+## frontend:
+##   - task: "Projection & Historique as bottom tabs"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/projection.tsx, frontend/app/(tabs)/history.tsx, frontend/app/(tabs)/_layout.tsx, frontend/app/_layout.tsx"
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Moved projection.tsx and history.tsx from stack into (tabs). Now 6 bottom tabs: Accueil, Farm, Projection, Historique, ZZZdex, Réglages. History add-session moved from sticky footer to a header + button. Home cards still navigate to these tab routes."
+##   - task: "Dates in JJ.MM.AAAA (DateField)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/store/format.ts, frontend/src/components/ui.tsx, frontend/app/(tabs)/history.tsx, frontend/app/farm/objective.tsx, frontend/app/(tabs)/farm.tsx"
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "New DateField masks input to JJ.MM.AAAA and stores ISO (YYYY-MM-DD). Used in session date and objective target date. Display via fmtDate on history cards and farm objective card."
+##   - task: "Exact manual number inputs"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/components/ui.tsx (InlineNumber), frontend/app/(tabs)/projection.tsx, frontend/app/(tabs)/history.tsx"
+##     priority: "medium"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "InlineNumber editable field replaces steppers for patch event income, patch expense pullCost, and session pull count."
+##   - task: "Home Délai restant + ZZZdex sort/reduced filters + light-theme names"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/index.tsx, frontend/app/(tabs)/zzzdex.tsx, frontend/src/components/AgentPortrait.tsx"
+##     priority: "medium"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Home shows 'Délai restant' (calendar days to objective target date, red if farm time exceeds it). ZZZdex: removed rank chips, added cycling 'Tri' chip (Récent/Nom/Rareté), default sort by lastBanner date desc. Agent portrait name forced white for readability on the dark scrim in both themes."
+
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.0"
+##   test_sequence: 3
+##   run_ui: true
+
+## test_plan:
+##   current_focus:
+##     - "Projection & Historique as bottom tabs"
+##     - "Dates in JJ.MM.AAAA (DateField)"
+##     - "Exact manual number inputs"
+##   test_all: false
+##   test_priority: "high_first"
+
+## agent_communication:
+##     -agent: "main"
+##     -message: "Frontend-only refinements. Please test: (1) 6-tab bottom bar navigation incl. Projection & Historique, and Home cards still open those tabs; (2) DateField in Add Session and Add Objective accepts digits and formats JJ.MM.AAAA, saves, and re-displays correctly (stored ISO). Verify the History pity/50-50 example still computes after entering date via new field; (3) InlineNumber exact entry for patch income, patch expense cost, and session pulls persists and recomputes projection/stats; (4) ZZZdex sort chip cycles Récent/Nom/Rareté and reorders; reduced filters (no rank chips) still filter. App is 100% local (AsyncStorage/IndexedDB), no backend."

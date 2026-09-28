@@ -1,11 +1,10 @@
-import { useRouter } from "expo-router";
-import { CaretLeft, CheckCircle, Plus, Trash } from "phosphor-react-native";
+import { CheckCircle, Plus, Trash } from "phosphor-react-native";
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/src/components/BottomSheet";
-import { AppText, Badge, Card, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
+import { AppText, Badge, Card, InlineNumber, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
 import { useStore } from "@/src/store/AppStore";
 import { computeProjection } from "@/src/store/projectionEngine";
 import { desiredCostEstimate } from "@/src/store/pullStats";
@@ -14,7 +13,6 @@ import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 export default function ProjectionScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { colors } = useTheme();
   const styles = useStyles();
   const store = useStore();
@@ -27,12 +25,9 @@ export default function ProjectionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable testID="projection-back" onPress={() => router.back()} style={styles.iconBtn} hitSlop={10}>
-          <CaretLeft size={20} color={colors.onSurface} weight="bold" />
-        </Pressable>
-        <AppText variant="title">PROJECTION</AppText>
-        <View style={{ width: 36 }} />
+      <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
+        <AppText variant="display">PROJECTION</AppText>
+        <AppText variant="caption" color={colors.muted}>Planifie tes pulls patch par patch</AppText>
       </View>
 
       <ScrollView
@@ -43,9 +38,10 @@ export default function ProjectionScreen() {
         {/* Current situation */}
         <Card>
           <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Situation actuelle</AppText>
-          <NumberField label="Tickets encapsulés" value={state.projection.startPulls} onChange={(v) => store.setProjection({ startPulls: v })} />
+          <NumberField label="Encrypted Master Tapes" value={state.projection.masterTapes} onChange={(v) => store.setProjection({ masterTapes: v })} />
           <NumberField label="Polychromes" value={state.projection.polychromes} onChange={(v) => store.setProjection({ polychromes: v })} />
           <NumberField label="Monochromes" value={state.projection.monochromes} onChange={(v) => store.setProjection({ monochromes: v })} />
+          <NumberField label="Residual Signals" value={state.projection.residualSignals} onChange={(v) => store.setProjection({ residualSignals: v })} />
           <View style={styles.totalRow}>
             <AppText variant="label" color={colors.muted}>TOTAL DISPONIBLE</AppText>
             <AppText style={{ fontFamily: fonts.display, fontSize: 28, color: colors.brandPrimary }}>{proj.startTotal} tickets</AppText>
@@ -119,7 +115,7 @@ function PatchSheet({ patch, onClose }: { patch: ProjPatch | null; onClose: () =
       </View>
       <View style={styles.stepField}>
         <AppText variant="body">Revenus événements</AppText>
-        <Stepper value={patch.tempIncome} onChange={(v) => store.updatePatch(patch.id, { tempIncome: v })} step={5} />
+        <InlineNumber value={patch.tempIncome} onChange={(v) => store.updatePatch(patch.id, { tempIncome: v })} testID="patch-income" />
       </View>
 
       <AppText variant="label" color={colors.muted} style={{ marginTop: spacing.sm }}>DÉPENSES PRÉVUES (tickets)</AppText>
@@ -135,7 +131,7 @@ function PatchSheet({ patch, onClose }: { patch: ProjPatch | null; onClose: () =
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
             <View>
               <AppText variant="label" color={colors.muted}>PRÉVU</AppText>
-              <Stepper value={e.pullCost} onChange={(v) => store.updateExpense(patch.id, e.id, { pullCost: v })} step={10} />
+              <InlineNumber value={e.pullCost} onChange={(v) => store.updateExpense(patch.id, e.id, { pullCost: v })} testID={`expense-cost-${e.id}`} />
             </View>
             <Pressable testID={`expense-delete-${e.id}`} onPress={() => { haptic.light(); store.deleteExpense(patch.id, e.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
               <Trash size={16} color={colors.error} />
@@ -153,7 +149,7 @@ function PatchSheet({ patch, onClose }: { patch: ProjPatch | null; onClose: () =
         <AppText variant="subtitle" color={colors.brandSecondary}>-{spent} tickets</AppText>
       </View>
 
-      <Pressable testID="close-patch-button" onPress={() => { haptic.success(); store.closePatch(patch.id); toast("Patch clôturé — solde reporté", "success"); onClose(); }} style={[styles.actionBtn, { backgroundColor: colors.success }]}>
+      <Pressable testID="close-patch-button" onPress={() => { haptic.success(); store.closePatch(patch.id); toast("Patch clôturé et archivé", "success"); onClose(); }} style={[styles.actionBtn, { backgroundColor: colors.success }]}>
         <CheckCircle size={18} color={colors.onSuccess} weight="bold" />
         <AppText variant="subtitle" color={colors.onSuccess}>Clôturer ce patch</AppText>
       </Pressable>

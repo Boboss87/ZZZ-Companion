@@ -1,0 +1,37 @@
+{
+  "summary": "Verified iteration 3 UI refinements for ZZZ Companion (Expo web preview). All 6 tabs (Accueil/Farm/Projection/Historique/ZZZdex/Réglages) are present and navigate correctly. Home cards 'Projection financière' and 'Historique de pulls' route to the correct tabs. History add-session button is in the header (testID add-session-button) and opens the Session sheet. DateField (JJ.MM.AAAA) works on both session-date and objective-date — typing 8 digits auto-formats and saved dates render as JJ.MM.AAAA on cards (verified '15.01.2026' on the history session card and persists after reload). Session math formulas match the spec: with pulls=1120, positions 150 and 1112, we observed PITY=8, MOYENNE S-RANK=556, COÛT MOYEN SOUHAITÉ=1112, 50/50=0% (0/1), TOTAL TIRAGES=1120, S-RANK OBTENUS=2 — the same pattern the spec expected at 1/10 scale (pity=8, avg=56, desired=112, 50/50=0%). Formulas verified: gap-based avg = (150+962)/2 = 556 matches; pity = pulls - lastPos. Projection PatchSheet: patch-income and expense-cost-<id> are editable InlineNumbers, and edits update SOLDE on the projection card (500 income – 200 expense yielded a new SOLDE). ZZZdex sort-cycle chip cycles Récent → Nom → Rareté → Récent; Rank (S/A) chips are removed; status and element chips remain. Persistence via AsyncStorage/IndexedDB confirmed by full page reload — history session and stats survive. One user-experience issue observed on the web preview: InlineNumber/TextInput does not select-all on focus on web (selectTextOnFocus is native-only), so typed digits append/prepend to the existing value; users must manually clear the field on web. This will not affect real mobile builds. Also a deprecation warning surfaced: 'props.pointerEvents is deprecated. Use style.pointerEvents' (originating from the Toast Animated.View).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "InlineNumber (web)",
+        "issue": "selectTextOnFocus does not work on react-native-web. On the web preview the existing digits stay and typed digits are inserted at cursor position, so values like 120 easily become 1120 or 150. Consider onFocus={e => e.target.select()} for web, or clear the value on focus.",
+        "testID": "session-pulls / patch-income / expense-cost-* / result-pos-*",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "Toast/Animated.View", "issues": ["Deprecation warning: props.pointerEvents deprecated. Use style.pointerEvents on the Animated.View in ToastProvider (src/components/ui.tsx around line 562)."] }
+    ],
+    "react_native_issues": [
+      { "component": "ToastProvider (src/components/ui.tsx)", "issue": "Uses deprecated prop pointerEvents on Animated.View. Migrate to style.pointerEvents. Reference: /app/frontend/src/components/ui.tsx:562" }
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_3.json"],
+  "action_items": [
+    "Optional UX fix: on web, force select-all on focus for InlineNumber (and result-pos TextInput) so users can retype numeric values without manually clearing. Example: add onFocus={(e) => Platform.OS === 'web' && e.target?.select?.()} to the TextInput.",
+    "Move pointerEvents from Animated.View prop to style.pointerEvents in ToastProvider to silence the deprecation warning."
+  ],
+  "critical_code_review_comments": [
+    "DateField logic in src/components/ui.tsx correctly formats JJ.MM.AAAA and stores YYYY-MM-DD; no month/day validation (e.g. 32.13.2026 would be stored as 2026-13-32). Consider clamping the components.",
+    "InlineNumber's Math.max(min, parseInt(...)) is fine, but combined with lack of select-all on web it produces confusing edit behaviour."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (backend not tested per request)", "frontend": "100% for spec items (7/7 features verified); 1 UX nit on web only" },
+  "seed_data_creation": "Cleared indexedDB/localStorage for a fresh state, then seeded a char_limited session (date 15.01.2026, pulls 1120, S-Ranks at 150 lost/not desired and 1112 guaranteed/desired) and one Projection patch edit (income 500, one expense cost 200), and one Farm objective (Ellen Joe).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The web preview does not honor selectTextOnFocus (RN-only). When you programmatically type into InlineNumber/result-pos/patch-income TextInputs via Playwright, clear the field explicitly (page.evaluate to set value or use triple-click + Delete). All feature testIDs referenced in the request are present: add-session-button, session-date, session-pulls, result-pos-<id>, outcome-<id>-<lost|guaranteed>, result-desired-<id>, save-session-button, patch-card-<id>, patch-income, expense-cost-<id>, add-expense-button, sort-cycle, filter-all/owned/unowned/wishlist, filter-el-<elt>, add-objective-button, objective-date, save-objective-button. Persistence uses IndexedDB via @react-native-async-storage/async-storage — reload the page to test, do NOT set localStorage.",
+  "rca_of_issue": "No spec regression found. The '1120 vs 120' number seen in the stats card is a Playwright/web input artifact caused by react-native-web ignoring selectTextOnFocus; the underlying pity/avg/desired/50-50 formulas are correct and match the spec at the values that were actually entered."
+}

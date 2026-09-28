@@ -29,6 +29,7 @@ import {
 import { useStore } from "@/src/store/AppStore";
 import { COMMON_MATERIALS } from "@/src/store/gameData";
 import { computeFarm, fmtDays, fmtQty, presetSummary } from "@/src/store/farmEngine";
+import { fmtDate } from "@/src/store/format";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 const STEP_BY_TYPE: Record<string, number> = {
@@ -262,7 +263,7 @@ function ObjectivesList({ farmStatuses }: { farmStatuses: ReturnType<typeof comp
                 </View>
                 <AppText variant="caption" color={colors.muted}>{preset.name} · {presetSummary(preset)}</AppText>
                 {obj.targetDate ? (
-                  <AppText variant="caption" color={colors.info}>Cible : {obj.targetDate}</AppText>
+                  <AppText variant="caption" color={colors.info}>Cible : {fmtDate(obj.targetDate)}</AppText>
                 ) : null}
                 <View style={{ marginTop: spacing.sm, gap: 4 }}>
                   <ProgressBar value={status?.progress ?? 0} height={6} color={status?.complete ? colors.success : colors.brandPrimary} />

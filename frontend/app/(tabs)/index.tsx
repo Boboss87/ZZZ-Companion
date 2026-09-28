@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AgentPortrait } from "@/src/components/AgentPortrait";
 import { AppText, Badge, Card, Loading, ProgressBar } from "@/src/components/ui";
 import { batteryDays, computeFarm, fmtDays } from "@/src/store/farmEngine";
+import { daysUntil, fmtDate } from "@/src/store/format";
 import { computeProjection } from "@/src/store/projectionEngine";
 import { computeBannerStats, desiredCostEstimate } from "@/src/store/pullStats";
 import { useStore } from "@/src/store/AppStore";
@@ -25,6 +26,8 @@ export default function HomeScreen() {
   const active = farm.statuses.filter((s) => s.agent && !s.complete);
   const current = active[0];
   const nextRow = current?.rows.find((r) => r.remaining > 0);
+  const currentObj = current ? state.objectives.find((o) => o.id === current.objectiveId) : undefined;
+  const delay = daysUntil(currentObj?.targetDate ?? "");
 
   const owned = state.agents.filter((a) => a.owned).length;
   const total = state.agents.length;
@@ -67,6 +70,12 @@ export default function HomeScreen() {
                   <AppText variant="body" color={colors.muted}>
                     Temps restant estimé : {fmtDays(current.daysLeft)}
                   </AppText>
+                  {delay != null ? (
+                    <AppText variant="body" color={current.daysLeft > delay ? colors.error : colors.info}>
+                      Délai restant : {delayLabel(delay)}
+                      {currentObj?.targetDate ? ` (${fmtDate(currentObj.targetDate)})` : ""}
+                    </AppText>
+                  ) : null}
                 </View>
               </View>
               <View style={{ marginTop: spacing.md, gap: 4 }}>
@@ -187,6 +196,12 @@ export default function HomeScreen() {
       </ScrollView>
     </View>
   );
+}
+
+function delayLabel(d: number): string {
+  if (d < 0) return `en retard de ${Math.abs(d)} j`;
+  if (d === 0) return "aujourd'hui";
+  return `${d} j`;
 }
 
 function EnergyStat({ label, value, color }: { label: string; value: number; color: string }) {

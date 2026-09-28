@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Barbell, Gear, House, SquaresFour } from "phosphor-react-native";
+import { Barbell, ClockCounterClockwise, Gear, House, SquaresFour, TrendUp } from "phosphor-react-native";
 import { Platform } from "react-native";
 
 import { fonts, useTheme } from "@/src/theme";
@@ -19,7 +19,7 @@ export default function TabsLayout() {
           ...(Platform.OS === "web" ? { height: 64 } : {}),
         },
         tabBarItemStyle: { alignSelf: "center" },
-        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 10 },
       }}
     >
       <Tabs.Screen
@@ -27,7 +27,7 @@ export default function TabsLayout() {
         options={{
           title: "Accueil",
           tabBarIcon: ({ color, focused }) => (
-            <House size={24} color={color} weight={focused ? "fill" : "regular"} />
+            <House size={22} color={color} weight={focused ? "fill" : "regular"} />
           ),
         }}
       />
@@ -36,7 +36,25 @@ export default function TabsLayout() {
         options={{
           title: "Farm",
           tabBarIcon: ({ color, focused }) => (
-            <Barbell size={24} color={color} weight={focused ? "fill" : "regular"} />
+            <Barbell size={22} color={color} weight={focused ? "fill" : "regular"} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="projection"
+        options={{
+          title: "Projection",
+          tabBarIcon: ({ color, focused }) => (
+            <TrendUp size={22} color={color} weight={focused ? "fill" : "regular"} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: "Historique",
+          tabBarIcon: ({ color, focused }) => (
+            <ClockCounterClockwise size={22} color={color} weight={focused ? "fill" : "regular"} />
           ),
         }}
       />
@@ -45,7 +63,7 @@ export default function TabsLayout() {
         options={{
           title: "ZZZdex",
           tabBarIcon: ({ color, focused }) => (
-            <SquaresFour size={24} color={color} weight={focused ? "fill" : "regular"} />
+            <SquaresFour size={22} color={color} weight={focused ? "fill" : "regular"} />
           ),
         }}
       />
@@ -54,7 +72,7 @@ export default function TabsLayout() {
         options={{
           title: "Réglages",
           tabBarIcon: ({ color, focused }) => (
-            <Gear size={24} color={color} weight={focused ? "fill" : "regular"} />
+            <Gear size={22} color={color} weight={focused ? "fill" : "regular"} />
           ),
         }}
       />

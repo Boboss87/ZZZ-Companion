@@ -50,6 +50,24 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 ## Implémenté — itération 4 (2026-06)
 - [x] Barème de farm éditable (`GameConfig` dans le store) : les coûts (personnage, moteur, compétences 1→12, core A→F) par rang S/A et les vitesses de farm (unités par run de 60 énergie) ne sont plus codés en dur. Le moteur (`computeRequirements`, `computeFarm`) lit `state.gameConfig`. Écran « Données du jeu » (`/gamedata`) éditable depuis Réglages, avec réinitialisation. Les valeurs par défaut restent des placeholders en attendant le fichier de vraies valeurs fourni par l'utilisateur.
 
+## Implémenté — itération 5 (2026-06) : vraies données du fichier
+- [x] Barème réel intégré (fichier ZZZ Database) : tables **par palier** (agent, moteur, skill 1→12, core A→F) + rendements de farm réels (base 20 énergie). Un seul barème universel (pas S/A). Le moteur somme les paliers réellement franchis selon le preset. Éditable dans « Données du jeu ».
+- [x] Matériaux complets : Dennies, Journaux, Modules, Cage à hamster, Sceaux (spé), Composants (spé), Puces (élément), Expert (agent), Infâme (agent). Règle d'exclusion : Cage à hamster & Infâme affichés comme manquants mais jamais comptés dans le temps de farm.
+- [x] Revenus permanents en polychromes/jour → projection selon la durée du patch (÷160). Situation actuelle : Master Tapes, Polychromes, Monochromes, Residual Signals → total en pulls. Clôture de patch = archivage seul (aucune modif des ressources).
+
+### Reste à faire (remarques A→G du fichier, prochaine itération)
+- Onglets bas d'écran Projection & Historique ; format de date JJ.MM.AAAA ; « Délai restant » sur l'Accueil ; titre « État des stocks » sur la liste de farm ; saisie manuelle exacte (patch revenus/dépenses, session nb tirages) ; ZZZdex filtres réduits + tri par date de bannière + nom lisible en thème clair ; listes déroulantes de stats de build pilotées par la table Stat ; spécialisations/éléments/bannières/sets éditables.
+
+## Implémenté — itération 6 (2026-06) : peaufinages A→G (1ère vague)
+- [x] Projection & Historique déplacés dans la barre d'onglets du bas (6 onglets : Accueil, Farm, Projection, Historique, ZZZdex, Réglages). En-têtes adaptés (sans bouton retour) ; bouton « + » d'ajout de session déplacé dans l'en-tête de l'Historique (plus de footer collant). Les cartes d'Accueil ouvrent toujours ces onglets.
+- [x] Dates au format JJ.MM.AAAA : nouveau composant `DateField` (masque la saisie en JJ.MM.AAAA, stocke en ISO AAAA-MM-JJ pour un tri correct) + `fmtDate`/`daysUntil` dans `src/store/format.ts`. Utilisé pour la date de session et la date cible d'objectif ; affichage JJ.MM.AAAA sur les cartes.
+- [x] « Délai restant » sur l'Accueil : jours calendaires jusqu'à la date cible de l'objectif courant (rouge si le temps de farm estimé dépasse l'échéance).
+- [x] Saisie manuelle exacte : nouveau composant `InlineNumber` (champ éditable) remplace les steppers pour les revenus d'événement de patch, le coût des dépenses, et le nombre de tirages d'une session. Sélection auto du texte au focus (web + natif).
+- [x] ZZZdex : filtres réduits (retrait des puces Rang S/A) + puce « Tri » cyclable (Récent = date de bannière ↓, Nom, Rareté), tri par défaut sur la date de bannière.
+- [x] Noms d'agents lisibles en thème clair (texte blanc forcé sur le voile sombre du portrait).
+- [x] Correctif : `pointerEvents` du toast déplacé dans le style (fin de dépréciation RN).
+- [x] Testé end-to-end (testing_agent iteration_3) — les 7 points passent (navigation 6 onglets, DateField, InlineNumber, exemple pity 8 / moyenne 56 / souhaité 112 / 50-50 0%, tri ZZZdex, persistance après reload).
+
 ## Backlog priorisé
 ### P1 (modules restants du cahier des charges)
 - Assistant de tri des Discs (regroupement des builds par set/combinaison de stats, filtres agents/builds).

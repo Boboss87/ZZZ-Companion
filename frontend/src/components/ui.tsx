@@ -15,12 +15,14 @@ import {
   ScrollView,
   StyleProp,
   Text,
+  TextInput,
   TextProps,
   TextStyle,
   View,
   ViewStyle,
 } from "react-native";
 
+import { fmtDate } from "@/src/store/format";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 // ---------------------------------------------------------------------------
@@ -366,6 +368,96 @@ const useStepperStyles = makeStyles((c) => ({
 }));
 
 // ---------------------------------------------------------------------------
+// Inline exact number input (large touch target, editable value)
+// ---------------------------------------------------------------------------
+export function InlineNumber({
+  value,
+  onChange,
+  min = 0,
+  style,
+  testID,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  style?: StyleProp<TextStyle>;
+  testID?: string;
+}) {
+  const { colors } = useTheme();
+  const styles = useInlineNumberStyles();
+  return (
+    <TextInput
+      testID={testID}
+      value={`${value}`}
+      onChangeText={(t) => onChange(Math.max(min, parseInt(t.replace(/[^0-9]/g, "") || "0", 10)))}
+      keyboardType="number-pad"
+      selectTextOnFocus
+      onFocus={(e) => { if (Platform.OS === "web") (e.target as unknown as HTMLInputElement)?.select?.(); }}
+      placeholderTextColor={colors.muted}
+      style={[styles.input, style]}
+    />
+  );
+}
+
+const useInlineNumberStyles = makeStyles((c) => ({
+  input: {
+    fontFamily: fonts.display,
+    fontSize: 22,
+    color: c.brandPrimary,
+    backgroundColor: c.surfaceTertiary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    minWidth: 110,
+    textAlign: "center",
+  },
+}));
+
+// ---------------------------------------------------------------------------
+// Date input (captures & displays JJ.MM.AAAA, stores ISO YYYY-MM-DD)
+// ---------------------------------------------------------------------------
+export function DateField({
+  valueISO,
+  onChange,
+  style,
+  testID,
+}: {
+  valueISO: string;
+  onChange: (iso: string) => void;
+  style?: StyleProp<TextStyle>;
+  testID?: string;
+}) {
+  const { colors } = useTheme();
+  const [text, setText] = useState(fmtDate(valueISO));
+  useEffect(() => setText(fmtDate(valueISO)), [valueISO]);
+
+  const handle = (t: string) => {
+    const d = t.replace(/\D/g, "").slice(0, 8);
+    let out = d;
+    if (d.length > 4) out = `${d.slice(0, 2)}.${d.slice(2, 4)}.${d.slice(4)}`;
+    else if (d.length > 2) out = `${d.slice(0, 2)}.${d.slice(2)}`;
+    setText(out);
+    if (d.length === 8) onChange(`${d.slice(4)}-${d.slice(2, 4)}-${d.slice(0, 2)}`);
+    else if (d.length === 0) onChange("");
+  };
+
+  return (
+    <TextInput
+      testID={testID}
+      value={text}
+      onChangeText={handle}
+      placeholder="JJ.MM.AAAA"
+      placeholderTextColor={colors.muted}
+      keyboardType="number-pad"
+      maxLength={10}
+      style={style}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Empty state
 // ---------------------------------------------------------------------------
 export function EmptyState({
@@ -468,7 +560,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {msg ? (
         <Animated.View
-          pointerEvents="none"
           style={{
             position: "absolute",
             bottom: 100,
@@ -479,7 +570,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             borderRadius: radius.md,
             paddingVertical: spacing.md,
             paddingHorizontal: spacing.lg,
-            ...(Platform.OS === "web" ? { pointerEvents: "none" as const } : {}),
+            pointerEvents: "none",
           }}
         >
           <Text style={{ fontFamily: fonts.medium, fontSize: 14, color: fg, textAlign: "center" }}>

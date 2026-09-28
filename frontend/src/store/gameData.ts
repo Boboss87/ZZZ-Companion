@@ -27,43 +27,9 @@ export const ENERGY_PER_UNIT: Record<string, number> = {
 // ---------------------------------------------------------------------------
 // Cost tables (approximate ZZZ S-rank leveling costs)
 // ---------------------------------------------------------------------------
-const SKILL_INC = {
-  dennies: [0, 0, 1000, 2000, 4000, 6000, 9000, 13000, 18000, 25000, 35000, 48000],
-  hamster: [0, 0, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18],
-  skillMat: [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4],
-  boss: [0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3],
-};
-
-// Cumulative Core Skill shape by rank index (A=0 .. F=5).
-const CORE_CUM = {
-  dennies: [0, 5000, 12000, 22000, 36000, 55000],
-  hamster: [0, 3, 7, 12, 18, 25],
-  skillMat: [0, 1, 2, 3, 4, 6],
-  boss: [0, 1, 2, 3, 4, 5],
-};
-
-type SkillField = "dennies" | "hamster" | "skillMat" | "boss";
-
 export function coreRankIndex(rank: string): number {
   const idx = "ABCDEF".indexOf((rank || "A").toUpperCase());
   return idx < 0 ? 0 : idx;
-}
-
-function skillFieldFraction(field: SkillField, level: number): number {
-  const arr = SKILL_INC[field];
-  const cumTo = (n: number) => {
-    let s = 0;
-    for (let l = 2; l <= n; l++) s += arr[l] || 0;
-    return s;
-  };
-  const full = cumTo(12);
-  return full > 0 ? cumTo(Math.max(1, Math.min(12, level))) / full : 0;
-}
-
-function coreFieldFraction(field: SkillField, idx: number): number {
-  const arr = CORE_CUM[field];
-  const full = arr[5];
-  return full > 0 ? arr[Math.max(0, Math.min(5, idx))] / full : 0;
 }
 
 export interface ReqEntry {
@@ -72,88 +38,100 @@ export interface ReqEntry {
   type: string;
   qty: number;
   scope: "common" | "specific";
+  countsForTime: boolean;
 }
 
-// Default, editable barème. Placeholder numbers — replace with real values
-// via the in-app "Données du jeu" screen.
+// Real barème from the user's ZZZ Database (per-level, editable in-app).
 export const DEFAULT_GAME_CONFIG: GameConfig = {
-  farmRate: { dennies: 45000, logs: 67, power: 67, hamster: 20, promo: 1.5, skillMat: 2.7, boss: 2 },
-  ranks: {
-    S: {
-      charDennies: 100000,
-      charExp: 366,
-      charPromo: 24,
-      engineDennies: 100000,
-      engineExp: 366,
-      skillDennies: 161000,
-      skillBooks: 83,
-      skillExpert: 16,
-      skillBoss: 9,
-      coreDennies: 55000,
-      coreBooks: 25,
-      coreExpert: 6,
-      coreBoss: 5,
-    },
-    A: {
-      charDennies: 80000,
-      charExp: 300,
-      charPromo: 20,
-      engineDennies: 80000,
-      engineExp: 300,
-      skillDennies: 120000,
-      skillBooks: 60,
-      skillExpert: 12,
-      skillBoss: 6,
-      coreDennies: 40000,
-      coreBooks: 18,
-      coreExpert: 4,
-      coreBoss: 4,
-    },
-  },
+  farmYield: { energy: 20, dennies: 25000, logs: 4.2, power: 5.4, sceaux: 1.495, composants: 2.165, puces: 1.83, expert: 2.5 },
+  agentProg: [
+    { denny: 0, journaux: 2, sceaux: 0 },
+    { denny: 24000, journaux: 8, sceaux: 0.444 },
+    { denny: 56000, journaux: 20, sceaux: 4 },
+    { denny: 120000, journaux: 45, sceaux: 6.666 },
+    { denny: 200000, journaux: 75, sceaux: 10 },
+    { denny: 400000, journaux: 150, sceaux: 20 },
+  ],
+  engineProg: [
+    { denny: 0, modules: 0.8, composants: 0 },
+    { denny: 12000, modules: 3.2, composants: 0.444 },
+    { denny: 28000, modules: 8, composants: 4 },
+    { denny: 60000, modules: 18, composants: 6.666 },
+    { denny: 100000, modules: 30, composants: 10 },
+    { denny: 200000, modules: 60, composants: 20 },
+  ],
+  skillProg: [
+    { denny: 2000, puces: 0.222, hamster: 0 },
+    { denny: 3000, puces: 0.333, hamster: 0 },
+    { denny: 6000, puces: 0.666, hamster: 0 },
+    { denny: 9000, puces: 1, hamster: 0 },
+    { denny: 12000, puces: 1.333, hamster: 0 },
+    { denny: 18000, puces: 2, hamster: 0 },
+    { denny: 45000, puces: 5, hamster: 0 },
+    { denny: 67500, puces: 8, hamster: 0 },
+    { denny: 90000, puces: 10, hamster: 0 },
+    { denny: 112500, puces: 12, hamster: 0 },
+    { denny: 135000, puces: 15, hamster: 1 },
+  ],
+  coreProg: [
+    { denny: 5000, expert: 0, infame: 0 },
+    { denny: 12000, expert: 2, infame: 0 },
+    { denny: 28000, expert: 4, infame: 0 },
+    { denny: 60000, expert: 9, infame: 2 },
+    { denny: 100000, expert: 15, infame: 3 },
+    { denny: 200000, expert: 30, infame: 4 },
+  ],
 };
 
-// Total materials needed to bring an agent to a preset target, using the
-// editable GameConfig barème.
-export function computeRequirements(agent: Agent, preset: Preset, config: GameConfig): ReqEntry[] {
-  const b = config.ranks[agent.rank] ?? config.ranks.S;
-  const cf = Math.max(0, Math.min(1, preset.charLevel / 60));
-  const ef = Math.max(0, Math.min(1, preset.engineLevel / 60));
+function sumRows<T>(rows: T[], count: number, key: keyof T): number {
+  let s = 0;
+  for (let i = 0; i < Math.min(count, rows.length); i++) s += (rows[i][key] as unknown as number) || 0;
+  return s;
+}
 
-  const skills = [preset.basic, preset.ex, preset.ultimate, preset.dodge, preset.assist];
-  let sDennies = 0,
-    sBooks = 0,
-    sExpert = 0,
-    sBoss = 0;
-  for (const lvl of skills) {
-    sDennies += b.skillDennies * skillFieldFraction("dennies", lvl);
-    sBooks += b.skillBooks * skillFieldFraction("hamster", lvl);
-    sExpert += b.skillExpert * skillFieldFraction("skillMat", lvl);
-    sBoss += b.skillBoss * skillFieldFraction("boss", lvl);
+// Total materials needed to bring an agent to a preset target, from the barème.
+export function computeRequirements(agent: Agent, preset: Preset, config: GameConfig): ReqEntry[] {
+  const charN = Math.max(0, Math.min(6, Math.floor(preset.charLevel / 10)));
+  const engN = Math.max(0, Math.min(6, Math.floor(preset.engineLevel / 10)));
+  const coreN = coreRankIndex(preset.coreSkill) + 1;
+  const skillLvls = [preset.basic, preset.ex, preset.ultimate, preset.dodge, preset.assist];
+
+  let sDenny = 0, sPuces = 0, sHamster = 0;
+  for (const lvl of skillLvls) {
+    const n = Math.max(0, Math.min(11, lvl - 1));
+    sDenny += sumRows(config.skillProg, n, "denny");
+    sPuces += sumRows(config.skillProg, n, "puces");
+    sHamster += sumRows(config.skillProg, n, "hamster");
   }
 
-  const ci = coreRankIndex(preset.coreSkill);
-  const cDennies = b.coreDennies * coreFieldFraction("dennies", ci);
-  const cBooks = b.coreBooks * coreFieldFraction("hamster", ci);
-  const cExpert = b.coreExpert * coreFieldFraction("skillMat", ci);
-  const cBoss = b.coreBoss * coreFieldFraction("boss", ci);
+  const dennies = Math.round(
+    sumRows(config.agentProg, charN, "denny") +
+      sumRows(config.engineProg, engN, "denny") +
+      sDenny +
+      sumRows(config.coreProg, coreN, "denny"),
+  );
+  const logs = Math.round(sumRows(config.agentProg, charN, "journaux"));
+  const power = Math.round(sumRows(config.engineProg, engN, "modules"));
+  const sceaux = Math.round(sumRows(config.agentProg, charN, "sceaux"));
+  const composants = Math.round(sumRows(config.engineProg, engN, "composants"));
+  const puces = Math.round(sPuces);
+  const hamster = Math.round(sHamster);
+  const expert = Math.round(sumRows(config.coreProg, coreN, "expert"));
+  const infame = Math.round(sumRows(config.coreProg, coreN, "infame"));
 
-  const dennies = Math.round(b.charDennies * cf + b.engineDennies * ef + sDennies + cDennies);
-  const logs = Math.round(b.charExp * cf);
-  const power = Math.round(b.engineExp * ef);
-  const hamster = Math.round(sBooks + cBooks);
-  const promo = Math.round(b.charPromo * cf);
-  const skillMat = Math.round(sExpert + cExpert);
-  const boss = Math.round(sBoss + cBoss);
-
+  const spec = agent.specialization;
+  const el = agent.element;
   return [
-    { materialId: "dennies", name: "Dennies", type: "dennies", qty: dennies, scope: "common" },
-    { materialId: "logs", name: "Journaux d'enquête", type: "logs", qty: logs, scope: "common" },
-    { materialId: "power", name: "Modules d'alimentation", type: "power", qty: power, scope: "common" },
-    { materialId: "hamster", name: "Cage à hamster", type: "hamster", qty: hamster, scope: "common" },
-    { materialId: agent.promoMaterial, name: agent.promoMaterial, type: "promo", qty: promo, scope: "specific" },
-    { materialId: agent.skillMaterial, name: agent.skillMaterial, type: "skillMat", qty: skillMat, scope: "specific" },
-    { materialId: agent.bossMaterial, name: agent.bossMaterial, type: "boss", qty: boss, scope: "specific" },
-  ].filter((r) => r.qty > 0 && !!r.materialId);
+    { materialId: "dennies", name: "Dennies", type: "dennies", qty: dennies, scope: "common", countsForTime: true },
+    { materialId: "logs", name: "Journaux d'enquête", type: "logs", qty: logs, scope: "common", countsForTime: true },
+    { materialId: "power", name: "Modules d'alimentation", type: "power", qty: power, scope: "common", countsForTime: true },
+    { materialId: "hamster", name: "Cage à hamster", type: "hamster", qty: hamster, scope: "common", countsForTime: false },
+    { materialId: "sceaux", name: `Sceau · ${spec}`, type: "sceaux", qty: sceaux, scope: "specific", countsForTime: true },
+    { materialId: "composants", name: `Composant · ${spec}`, type: "composants", qty: composants, scope: "specific", countsForTime: true },
+    { materialId: "puces", name: `Puce · ${el}`, type: "puces", qty: puces, scope: "specific", countsForTime: true },
+    { materialId: "expert", name: agent.skillMaterial || "Expert", type: "expert", qty: expert, scope: "specific", countsForTime: true },
+    { materialId: "infame", name: agent.bossMaterial || "Infâme", type: "infame", qty: infame, scope: "specific", countsForTime: false },
+  ].filter((r) => r.qty > 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -354,17 +332,20 @@ export function makeInitialState(): AppState {
     commonStock: stock,
     pullSessions: [],
     permanentIncomes: [
-      { id: "inc_daily", name: "Daily / Missions", pullsPerPatch: 16 },
-      { id: "inc_ik", name: "IK Membership", pullsPerPatch: 42 },
-      { id: "inc_bp", name: "Battle Pass", pullsPerPatch: 10 },
-      { id: "inc_hz", name: "Hollow Zero", pullsPerPatch: 8 },
-      { id: "inc_shiyu", name: "Shiyu Defense", pullsPerPatch: 12 },
-      { id: "inc_da", name: "Deadly Assault", pullsPerPatch: 10 },
+      { id: "inc_ik", name: "IK Membership", polyPerDay: 100 },
+      { id: "inc_bp", name: "Battle Pass", polyPerDay: 31.43 },
+      { id: "inc_daily", name: "Dailies", polyPerDay: 60 },
+      { id: "inc_ridu", name: "Ridu hebdo", polyPerDay: 8.57 },
+      { id: "inc_hoyolab", name: "HoyoLAB", polyPerDay: 2 },
+      { id: "inc_hz", name: "Hollow Zero", polyPerDay: 22.86 },
+      { id: "inc_shiyu", name: "Shiyu Defense", polyPerDay: 55.71 },
+      { id: "inc_da", name: "Deadly Assault", polyPerDay: 21.43 },
     ],
     projection: {
-      startPulls: 0,
+      masterTapes: 0,
       polychromes: 0,
       monochromes: 0,
+      residualSignals: 0,
       patches: [
         { id: "p1", name: "3.0", durationDays: 42, tempIncome: 20, expenses: [] },
         { id: "p2", name: "3.1", durationDays: 42, tempIncome: 20, expenses: [] },

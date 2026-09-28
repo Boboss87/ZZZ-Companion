@@ -166,7 +166,7 @@ export default function SettingsScreen() {
             <Stepper value={s.avgDesiredCost} onChange={(v) => store.setSettings({ avgDesiredCost: v })} step={5} min={1} />
           </SettingRow>
           <AppText variant="label" color={colors.muted} style={{ marginTop: spacing.md, marginBottom: spacing.xs }}>
-            REVENUS PERMANENTS (tickets / patch)
+            REVENUS PERMANENTS (polychromes / jour)
           </AppText>
           <View style={{ gap: spacing.sm }}>
             {state.permanentIncomes.map((inc) => (
@@ -178,7 +178,7 @@ export default function SettingsScreen() {
                   style={styles.incomeInput}
                 />
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
-                  <Stepper value={inc.pullsPerPatch} onChange={(v) => store.updatePermanentIncome(inc.id, { pullsPerPatch: v })} step={2} />
+                  <Stepper value={inc.polyPerDay} onChange={(v) => store.updatePermanentIncome(inc.id, { polyPerDay: v })} step={5} />
                   <Pressable testID={`income-delete-${inc.id}`} onPress={() => { haptic.light(); store.deletePermanentIncome(inc.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
                     <Trash size={16} color={colors.error} />
                   </Pressable>
@@ -188,7 +188,7 @@ export default function SettingsScreen() {
           </View>
           <Pressable
             testID="add-income-button"
-            onPress={() => { haptic.light(); store.addPermanentIncome({ name: "Nouvelle source", pullsPerPatch: 10 }); }}
+            onPress={() => { haptic.light(); store.addPermanentIncome({ name: "Nouvelle source", polyPerDay: 10 }); }}
             style={styles.addRow}
           >
             <Plus size={16} color={colors.brandPrimary} weight="bold" />

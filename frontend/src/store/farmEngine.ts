@@ -1,5 +1,5 @@
 import { computeRequirements } from "./gameData";
-import { Agent, AppState, FarmObjective, FarmRate, Preset } from "./types";
+import { Agent, AppState, FarmObjective, FarmYield, Preset } from "./types";
 
 export function getFarmEnergy(s: AppState["settings"]): number {
   const discEnergy = s.discRuns * 60;
@@ -44,9 +44,11 @@ export interface FarmResult {
   statuses: ObjectiveStatus[];
 }
 
-function energyFor(rate: FarmRate, type: string, qty: number): number {
-  const per = (rate as unknown as Record<string, number>)[type];
-  return per > 0 ? (qty * 60) / per : 0;
+function energyFor(y: FarmYield, type: string, qty: number): number {
+  const yields = y as unknown as Record<string, number>;
+  const per = yields[type];
+  // hamster & infame have no yield -> never counted in time estimates
+  return per > 0 && y.energy > 0 ? (qty * y.energy) / per : 0;
 }
 
 export function computeFarm(state: AppState): FarmResult {
@@ -79,7 +81,7 @@ export function computeFarm(state: AppState): FarmResult {
     }
 
     const reqs = computeRequirements(agent, preset, state.gameConfig);
-    const rate = state.gameConfig.farmRate;
+    const rate = state.gameConfig.farmYield;
     let totalEnergy = 0;
     let remainingEnergy = 0;
     const rows: FarmRow[] = [];
@@ -116,7 +118,7 @@ export function computeFarm(state: AppState): FarmResult {
       }
     }
 
-    const complete = remainingEnergy <= 0;
+    const complete = rows.length === 0;
     statuses.push({
       objectiveId: obj.id,
       agent,

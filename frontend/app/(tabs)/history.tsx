@@ -1,12 +1,12 @@
-import { useRouter } from "expo-router";
-import { CaretLeft, PencilSimple, Plus, Trash } from "phosphor-react-native";
+import { PencilSimple, Plus, Trash } from "phosphor-react-native";
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
+import { Platform, Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/src/components/BottomSheet";
-import { AppText, Badge, Card, Chip, EmptyState, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
+import { AppText, Badge, Card, Chip, DateField, EmptyState, InlineNumber, PrimaryButton, haptic, useToast } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
+import { fmtDate } from "@/src/store/format";
 import { BANNERS, bannerLabel, computeBannerStats } from "@/src/store/pullStats";
 import { BannerType, Outcome, PullSession, SRankResult } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -19,7 +19,6 @@ const OUTCOMES: { id: Outcome; label: string }[] = [
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { colors } = useTheme();
   const styles = useStyles();
   const store = useStore();
@@ -48,12 +47,16 @@ export default function HistoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable testID="history-back" onPress={() => router.back()} style={styles.iconBtn} hitSlop={10}>
-          <CaretLeft size={20} color={colors.onSurface} weight="bold" />
-        </Pressable>
-        <AppText variant="title">HISTORIQUE</AppText>
-        <View style={{ width: 36 }} />
+      <View style={{ paddingTop: insets.top + spacing.md, paddingHorizontal: spacing.lg }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" }}>
+          <View>
+            <AppText variant="display">HISTORIQUE</AppText>
+            <AppText variant="caption" color={colors.muted}>Pity, 50/50 et coût moyen</AppText>
+          </View>
+          <Pressable style={styles.addBtn} onPress={() => { haptic.light(); newSession(); }} testID="add-session-button">
+            <Plus size={22} color={colors.onBrandPrimary} weight="bold" />
+          </Pressable>
+        </View>
       </View>
 
       {/* banner chips */}
@@ -67,7 +70,7 @@ export default function HistoryScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.md, paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ padding: spacing.lg, paddingTop: spacing.sm, gap: spacing.md, paddingBottom: spacing.xxl }}
       >
         {/* stats */}
         <Card accent>
@@ -93,7 +96,7 @@ export default function HistoryScreen() {
             <Card key={s.id} testID={`session-card-${s.id}`}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View>
-                  <AppText variant="subtitle">{s.date || "Sans date"}</AppText>
+                  <AppText variant="subtitle">{fmtDate(s.date) || "Sans date"}</AppText>
                   <AppText variant="caption" color={colors.muted}>{s.pulls} tirages · {s.results.length} S-Rank</AppText>
                 </View>
                 <View style={{ flexDirection: "row", gap: spacing.sm }}>
@@ -123,10 +126,6 @@ export default function HistoryScreen() {
           ))
         )}
       </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: spacing.md }]}>
-        <PrimaryButton label="+ AJOUTER UNE SESSION" onPress={newSession} testID="add-session-button" />
-      </View>
 
       <SessionSheet
         editing={editing}
@@ -177,18 +176,11 @@ function SessionSheet({
     <BottomSheet visible={!!editing} onClose={onClose} title="Session de tirages">
       <View style={{ marginBottom: spacing.md }}>
         <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>DATE</AppText>
-        <TextInput
-          testID="session-date"
-          value={draft.date}
-          onChangeText={(t) => set({ date: t })}
-          placeholder="AAAA-MM-JJ"
-          placeholderTextColor={colors.muted}
-          style={styles.field}
-        />
+        <DateField testID="session-date" valueISO={draft.date} onChange={(iso) => set({ date: iso })} style={styles.field} />
       </View>
       <View style={styles.stepField}>
         <AppText variant="body">Nombre de tirages</AppText>
-        <Stepper value={draft.pulls} onChange={(v) => set({ pulls: Math.max(1, v) })} step={10} min={1} />
+        <InlineNumber value={draft.pulls} min={1} onChange={(v) => set({ pulls: Math.max(1, v) })} testID="session-pulls" />
       </View>
 
       <AppText variant="label" color={colors.muted}>S-RANK OBTENUS</AppText>
@@ -213,6 +205,8 @@ function SessionSheet({
               value={`${r.position}`}
               onChangeText={(t) => setResult(r.id, { position: Math.max(1, parseInt(t.replace(/[^0-9]/g, "") || "1", 10)) })}
               keyboardType="number-pad"
+              selectTextOnFocus
+              onFocus={(e) => { if (Platform.OS === "web") (e.target as unknown as HTMLInputElement)?.select?.(); }}
               style={styles.posInput}
             />
           </View>
@@ -341,15 +335,12 @@ const useStyles = makeStyles((c) => ({
     borderStyle: "dashed",
     marginTop: spacing.sm,
   },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: c.surface,
-    borderTopWidth: 1,
-    borderTopColor: c.border,
+  addBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: c.brandPrimary,
+    alignItems: "center",
+    justifyContent: "center",
   },
 }));

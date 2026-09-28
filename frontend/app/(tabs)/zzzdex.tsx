@@ -7,11 +7,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AgentPortrait } from "@/src/components/AgentPortrait";
 import { AppText, Chip, EmptyState, Loading, haptic } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
-import { ELEMENTS, RANKS } from "@/src/store/gameData";
+import { ELEMENTS } from "@/src/store/gameData";
 import { Agent } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 type Status = "all" | "owned" | "unowned" | "wishlist";
+type SortMode = "banner" | "name" | "rank";
+const SORT_LABEL: Record<SortMode, string> = { banner: "Récent", name: "Nom", rank: "Rareté" };
 
 export default function ZZZdexScreen() {
   const insets = useSafeAreaInsets();
@@ -25,22 +27,32 @@ export default function ZZZdexScreen() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>("all");
   const [element, setElement] = useState<string | null>(null);
-  const [rank, setRank] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortMode>("banner");
 
   const cols = width >= 700 ? 4 : 3;
   const size = (width - spacing.lg * 2 - spacing.sm * (cols - 1)) / cols;
 
   const filtered = useMemo(() => {
-    return state.agents.filter((a) => {
+    const list = state.agents.filter((a) => {
       if (query && !a.name.toLowerCase().includes(query.toLowerCase())) return false;
       if (status === "owned" && !a.owned) return false;
       if (status === "unowned" && a.owned) return false;
       if (status === "wishlist" && !a.wishlist) return false;
       if (element && a.element !== element) return false;
-      if (rank && a.rank !== rank) return false;
       return true;
     });
-  }, [state.agents, query, status, element, rank]);
+    list.sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "rank") return a.rank === b.rank ? a.name.localeCompare(b.name) : a.rank === "S" ? -1 : 1;
+      const ka = a.lastBanner || a.releaseDate || "";
+      const kb = b.lastBanner || b.releaseDate || "";
+      if (ka === kb) return a.name.localeCompare(b.name);
+      if (!ka) return 1;
+      if (!kb) return -1;
+      return kb.localeCompare(ka);
+    });
+    return list;
+  }, [state.agents, query, status, element, sort]);
 
   if (!ready) return <Loading />;
 
@@ -129,6 +141,13 @@ export default function ZZZdexScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: spacing.sm, paddingHorizontal: spacing.lg, alignItems: "center" }}
         >
+          <Chip
+            label={`Tri : ${SORT_LABEL[sort]}`}
+            selected
+            onPress={() => setSort(sort === "banner" ? "name" : sort === "name" ? "rank" : "banner")}
+            testID="sort-cycle"
+          />
+          <View style={styles.chipDivider} />
           <Chip label="Tous" selected={status === "all"} onPress={() => setStatus("all")} testID="filter-all" />
           <Chip label="Possédés" selected={status === "owned"} onPress={() => setStatus(status === "owned" ? "all" : "owned")} testID="filter-owned" />
           <Chip label="Manquants" selected={status === "unowned"} onPress={() => setStatus(status === "unowned" ? "all" : "unowned")} testID="filter-unowned" />
@@ -136,10 +155,6 @@ export default function ZZZdexScreen() {
           <View style={styles.chipDivider} />
           {ELEMENTS.map((el) => (
             <Chip key={el} label={el} selected={element === el} onPress={() => setElement(element === el ? null : el)} testID={`filter-el-${el}`} />
-          ))}
-          <View style={styles.chipDivider} />
-          {RANKS.map((r) => (
-            <Chip key={r} label={`Rang ${r}`} selected={rank === r} onPress={() => setRank(rank === r ? null : r)} testID={`filter-rank-${r}`} />
           ))}
         </ScrollView>
       </View>

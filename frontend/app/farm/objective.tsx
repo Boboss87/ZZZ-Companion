@@ -5,7 +5,7 @@ import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from "rea
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AgentPortrait } from "@/src/components/AgentPortrait";
-import { AppText, Chip, PrimaryButton, haptic, useToast } from "@/src/components/ui";
+import { AppText, Chip, DateField, PrimaryButton, haptic, useToast } from "@/src/components/ui";
 import { useStore } from "@/src/store/AppStore";
 import { presetSummary } from "@/src/store/farmEngine";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -111,14 +111,7 @@ export default function ObjectiveScreen() {
 
         <View>
           <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.sm }}>3 · DATE CIBLE (OPTIONNEL)</AppText>
-          <TextInput
-            testID="objective-date"
-            value={targetDate}
-            onChangeText={setTargetDate}
-            placeholder="AAAA-MM-JJ"
-            placeholderTextColor={colors.muted}
-            style={styles.search}
-          />
+          <DateField testID="objective-date" valueISO={targetDate} onChange={setTargetDate} style={styles.search} />
         </View>
       </ScrollView>
 

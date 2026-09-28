@@ -1,9 +1,9 @@
 import { AppState, ProjPatch } from "./types";
 
 export function patchIncome(state: AppState, patch: ProjPatch): number {
-  const base = state.permanentIncomes.reduce((sum, i) => sum + i.pullsPerPatch, 0);
-  const factor = state.settings.patchDurationDays > 0 ? patch.durationDays / state.settings.patchDurationDays : 1;
-  return Math.round(base * factor) + patch.tempIncome;
+  const polyPerDay = state.permanentIncomes.reduce((sum, i) => sum + i.polyPerDay, 0);
+  const permPulls = Math.floor((polyPerDay * patch.durationDays) / 160);
+  return permPulls + patch.tempIncome;
 }
 
 export function patchSpent(patch: ProjPatch): number {
@@ -28,9 +28,12 @@ export interface ProjResult {
 }
 
 export function computeProjection(state: AppState, avgDesired: number): ProjResult {
+  const p = state.projection;
   const startTotal =
-    state.projection.startPulls +
-    Math.floor((state.projection.polychromes + state.projection.monochromes) / 160);
+    p.masterTapes +
+    Math.floor(p.polychromes / 160) +
+    Math.floor(p.monochromes / 160) +
+    Math.floor(p.residualSignals / 20);
 
   const rows: ProjRow[] = [];
   let balance = startTotal;

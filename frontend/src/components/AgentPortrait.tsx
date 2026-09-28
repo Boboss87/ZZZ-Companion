@@ -91,7 +91,7 @@ export function AgentPortrait({
           colors={["transparent", "rgba(10,10,10,0.9)"]}
           style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 6, paddingTop: 14, paddingBottom: 6 }}
         >
-          <AppText numberOfLines={1} style={{ fontFamily: fonts.semibold, fontSize: 11, color: colors.onSurface }}>
+          <AppText numberOfLines={1} style={{ fontFamily: fonts.semibold, fontSize: 11, color: "#FFFFFF" }}>
             {agent.name}
           </AppText>
         </LinearGradient>

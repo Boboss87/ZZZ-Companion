@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { ArrowCounterClockwise, CaretLeft, Lightning, Sword } from "phosphor-react-native";
+import { ArrowCounterClockwise, CaretLeft, Lightning } from "phosphor-react-native";
 import React, { useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,52 +7,51 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet } from "@/src/components/BottomSheet";
 import { AppText, Card, PrimaryButton, haptic, useToast } from "@/src/components/ui";
 import { useStore } from "@/src/store/AppStore";
-import { FarmRate, RankBareme } from "@/src/store/types";
+import { FarmYield } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
-const FARM_RATE_FIELDS: { key: keyof FarmRate; label: string }[] = [
-  { key: "dennies", label: "Dennies" },
-  { key: "logs", label: "EXP perso (Journaux)" },
-  { key: "power", label: "EXP moteur (Modules)" },
-  { key: "hamster", label: "Livres de skill (Cage à hamster)" },
-  { key: "promo", label: "Matériau de promotion" },
-  { key: "skillMat", label: "Matériau d'expert" },
-  { key: "boss", label: "Matériau de boss" },
+type ProgTable = "agentProg" | "engineProg" | "skillProg" | "coreProg";
+
+const YIELD_FIELDS: { key: keyof FarmYield; label: string }[] = [
+  { key: "energy", label: "Énergie dépensée (base)" },
+  { key: "dennies", label: "Denny" },
+  { key: "logs", label: "Journaux" },
+  { key: "power", label: "Modules" },
+  { key: "sceaux", label: "Sceaux" },
+  { key: "composants", label: "Composants" },
+  { key: "puces", label: "Puces" },
+  { key: "expert", label: "Expert" },
 ];
 
-const BAREME_GROUPS: { title: string; fields: { key: keyof RankBareme; label: string }[] }[] = [
+const TABLES: {
+  table: ProgTable;
+  title: string;
+  labels: string[];
+  cols: { key: string; label: string }[];
+}[] = [
   {
-    title: "Personnage (→ niv. 60)",
-    fields: [
-      { key: "charDennies", label: "Dennies" },
-      { key: "charExp", label: "Matériaux d'EXP" },
-      { key: "charPromo", label: "Matériaux de promotion" },
-    ],
+    table: "agentProg",
+    title: "Progression agent (par palier)",
+    labels: ["1-10", "10-20", "20-30", "30-40", "40-50", "50-60"],
+    cols: [{ key: "denny", label: "Denny" }, { key: "journaux", label: "Journaux" }, { key: "sceaux", label: "Sceaux" }],
   },
   {
-    title: "Moteur (→ niv. 60)",
-    fields: [
-      { key: "engineDennies", label: "Dennies" },
-      { key: "engineExp", label: "Matériaux d'EXP moteur" },
-    ],
+    table: "engineProg",
+    title: "Progression moteur (par palier)",
+    labels: ["1-10", "10-20", "20-30", "30-40", "40-50", "50-60"],
+    cols: [{ key: "denny", label: "Denny" }, { key: "modules", label: "Modules" }, { key: "composants", label: "Compos." }],
   },
   {
-    title: "Une compétence (niv. 1 → 12)",
-    fields: [
-      { key: "skillDennies", label: "Dennies" },
-      { key: "skillBooks", label: "Livres de skill" },
-      { key: "skillExpert", label: "Matériau d'expert" },
-      { key: "skillBoss", label: "Matériau de boss" },
-    ],
+    table: "skillProg",
+    title: "Progression skill (par niveau, ×1 skill)",
+    labels: ["1-2", "2-3", "3-4", "4-5", "5-6", "6-7", "7-8", "8-9", "9-10", "10-11", "11-12"],
+    cols: [{ key: "denny", label: "Denny" }, { key: "puces", label: "Puces" }, { key: "hamster", label: "Cage" }],
   },
   {
-    title: "Core skill (A → F)",
-    fields: [
-      { key: "coreDennies", label: "Dennies" },
-      { key: "coreBooks", label: "Livres de skill" },
-      { key: "coreExpert", label: "Matériau d'expert" },
-      { key: "coreBoss", label: "Matériau de boss" },
-    ],
+    table: "coreProg",
+    title: "Progression core passif (A → F)",
+    labels: ["A", "B", "C", "D", "E", "F"],
+    cols: [{ key: "denny", label: "Denny" }, { key: "expert", label: "Expert" }, { key: "infame", label: "Infâme" }],
   },
 ];
 
@@ -63,12 +62,8 @@ export default function GameDataScreen() {
   const styles = useStyles();
   const toast = useToast();
   const store = useStore();
-  const { state } = store;
-  const [rank, setRank] = useState<"S" | "A">("S");
+  const cfg = store.state.gameConfig;
   const [confirmReset, setConfirmReset] = useState(false);
-
-  const cfg = state.gameConfig;
-  const bareme = cfg.ranks[rank];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -88,120 +83,89 @@ export default function GameDataScreen() {
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + spacing.xxl }}
       >
         <AppText variant="caption" color={colors.muted}>
-          Ces chiffres pilotent les calculs de farm. Modifie-les avec tes vraies valeurs — tout est enregistré et
-          synchronisé automatiquement dans tous les modules.
+          Barème officiel de ton compte. Les presets calculent automatiquement les matériaux à partir de ces valeurs.
+          Cage à hamster & Infâme sont affichés comme manquants mais jamais comptés dans le temps de farm.
         </AppText>
 
-        {/* Farm rates */}
+        {/* Farm yields */}
         <Card>
           <View style={styles.cardHead}>
             <Lightning size={18} color={colors.brandPrimary} weight="fill" />
-            <AppText variant="subtitle">Vitesse de farm</AppText>
+            <AppText variant="subtitle">Rendement par énergie</AppText>
           </View>
           <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
-            Quantité obtenue par run de 60 énergie (décimales autorisées).
+            Quantité obtenue pour l'énergie de base indiquée (décimales OK).
           </AppText>
-          {FARM_RATE_FIELDS.map((f) => (
-            <NumberField
-              key={f.key}
-              testID={`farmrate-${f.key}`}
-              label={f.label}
-              value={cfg.farmRate[f.key]}
-              onChange={(v) => store.setFarmRate(f.key, v)}
-            />
+          {YIELD_FIELDS.map((f) => (
+            <View key={f.key} style={styles.yieldRow}>
+              <AppText variant="body" style={{ flex: 1 }}>{f.label}</AppText>
+              <NumberCell testID={`yield-${f.key}`} value={cfg.farmYield[f.key]} onChange={(v) => store.setFarmYield(f.key, v)} wide />
+            </View>
           ))}
         </Card>
 
-        {/* Bareme */}
-        <View style={styles.segment}>
-          <SegBtn label="BARÈME RANG S" active={rank === "S"} onPress={() => setRank("S")} />
-          <SegBtn label="BARÈME RANG A" active={rank === "A"} onPress={() => setRank("A")} />
-        </View>
-
-        {BAREME_GROUPS.map((group) => (
-          <Card key={group.title}>
-            <View style={styles.cardHead}>
-              <Sword size={18} color={colors.brandSecondary} weight="fill" />
-              <AppText variant="subtitle">{group.title}</AppText>
-            </View>
-            {group.fields.map((f) => (
-              <NumberField
-                key={f.key}
-                testID={`bareme-${rank}-${f.key}`}
-                label={f.label}
-                value={bareme[f.key]}
-                onChange={(v) => store.setBareme(rank, f.key, v)}
-              />
-            ))}
-          </Card>
-        ))}
+        {/* Progression tables */}
+        {TABLES.map((t) => {
+          const rows = cfg[t.table] as Record<string, number>[];
+          return (
+            <Card key={t.table}>
+              <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>{t.title}</AppText>
+              <View style={styles.gridHeader}>
+                <AppText variant="label" color={colors.muted} style={{ width: 52 }}>NIV</AppText>
+                {t.cols.map((c) => (
+                  <AppText key={c.key} variant="label" color={colors.muted} style={{ flex: 1, textAlign: "center" }}>{c.label}</AppText>
+                ))}
+              </View>
+              {t.labels.map((lvl, i) => (
+                <View key={lvl} style={styles.gridRow}>
+                  <AppText variant="caption" style={{ width: 52 }}>{lvl}</AppText>
+                  {t.cols.map((c) => (
+                    <View key={c.key} style={{ flex: 1, paddingHorizontal: 3 }}>
+                      <NumberCell
+                        testID={`prog-${t.table}-${i}-${c.key}`}
+                        value={rows[i]?.[c.key] ?? 0}
+                        onChange={(v) => store.setProgRow(t.table, i, c.key, v)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </Card>
+          );
+        })}
       </ScrollView>
 
       <BottomSheet visible={confirmReset} onClose={() => setConfirmReset(false)} title="Réinitialiser le barème ?" scroll={false}>
         <AppText variant="body" color={colors.onSurfaceSecondary}>
-          Les chiffres de farm reviendront aux valeurs par défaut de l'app. Tes agents, objectifs et sauvegardes ne
-          sont pas touchés.
+          Les valeurs reviennent au barème par défaut. Agents, objectifs et sauvegardes ne sont pas touchés.
         </AppText>
-        <PrimaryButton
-          label="RÉINITIALISER"
-          variant="danger"
-          onPress={() => { store.resetGameConfig(); setConfirmReset(false); toast("Barème réinitialisé", "info"); }}
-          testID="confirm-reset-gamedata"
-        />
+        <PrimaryButton label="RÉINITIALISER" variant="danger" onPress={() => { store.resetGameConfig(); setConfirmReset(false); toast("Barème réinitialisé", "info"); }} testID="confirm-reset-gamedata" />
         <PrimaryButton label="ANNULER" variant="ghost" onPress={() => setConfirmReset(false)} />
       </BottomSheet>
     </View>
   );
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  testID,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  testID?: string;
-}) {
+function NumberCell({ value, onChange, testID, wide }: { value: number; onChange: (v: number) => void; testID?: string; wide?: boolean }) {
   const { colors } = useTheme();
   const styles = useStyles();
   const [text, setText] = useState(`${value}`);
-
   React.useEffect(() => setText(`${value}`), [value]);
-
   const commit = (t: string) => {
     const cleaned = t.replace(/[^0-9.]/g, "");
     setText(cleaned);
     const n = parseFloat(cleaned);
     onChange(Number.isFinite(n) ? n : 0);
   };
-
   return (
-    <View style={styles.fieldRow}>
-      <AppText variant="body" style={{ flex: 1, paddingRight: spacing.md }}>{label}</AppText>
-      <TextInput
-        testID={testID}
-        value={text}
-        onChangeText={commit}
-        keyboardType="decimal-pad"
-        placeholderTextColor={colors.muted}
-        style={styles.input}
-      />
-    </View>
-  );
-}
-
-function SegBtn({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={() => { haptic.select(); onPress(); }}
-      style={{ flex: 1, height: 40, alignItems: "center", justifyContent: "center", borderRadius: radius.sm, backgroundColor: active ? colors.brandPrimary : "transparent" }}
-    >
-      <AppText variant="label" color={active ? colors.onBrandPrimary : colors.muted}>{label}</AppText>
-    </Pressable>
+    <TextInput
+      testID={testID}
+      value={text}
+      onChangeText={commit}
+      keyboardType="decimal-pad"
+      placeholderTextColor={colors.muted}
+      style={[styles.cell, wide && { minWidth: 120, textAlign: "right" }]}
+    />
   );
 }
 
@@ -226,33 +190,26 @@ const useStyles = makeStyles((c) => ({
     justifyContent: "center",
   },
   cardHead: { flexDirection: "row", gap: spacing.sm, alignItems: "center", marginBottom: spacing.sm },
-  segment: {
-    flexDirection: "row",
-    backgroundColor: c.surfaceSecondary,
-    borderRadius: radius.md,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: c.border,
-  },
-  fieldRow: {
+  yieldRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderTopWidth: 1,
     borderTopColor: c.divider,
   },
-  input: {
-    fontFamily: fonts.display,
-    fontSize: 18,
+  gridHeader: { flexDirection: "row", alignItems: "center", paddingBottom: spacing.xs },
+  gridRow: { flexDirection: "row", alignItems: "center", paddingVertical: 3 },
+  cell: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
     color: c.brandPrimary,
     backgroundColor: c.surfaceTertiary,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: c.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minWidth: 110,
-    textAlign: "right",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    textAlign: "center",
   },
 }));
