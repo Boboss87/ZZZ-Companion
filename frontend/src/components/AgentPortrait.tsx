@@ -7,6 +7,7 @@ import { Heart } from "phosphor-react-native";
 import { ELEMENT_COLORS, fonts, radius, spacing, useTheme } from "@/src/theme";
 import { Agent } from "@/src/store/types";
 import { ResImage } from "@/src/store/resources";
+import { daysUntil } from "@/src/store/format";
 import { AppText, Badge, haptic } from "./ui";
 
 function initials(name: string): string {
@@ -28,6 +29,8 @@ export function AgentPortrait({
   const elementColor = ELEMENT_COLORS[agent.element] ?? colors.brandPrimary;
   const owned = agent.owned;
   const base = owned ? elementColor : colors.surfaceTertiary;
+  const du = daysUntil(agent.lastBanner);
+  const sinceRerun = du != null ? -du : null;
 
   return (
     <Pressable
@@ -83,16 +86,11 @@ export function AgentPortrait({
           <ResImage kind="spec" value={agent.specialization} style={{ width: 18, height: 18, borderRadius: 4 }}
             fallback={<Badge label={agent.specialization.slice(0, 3).toUpperCase()} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />} />
         </View>
-        <View style={{ position: "absolute", top: spacing.xs, right: spacing.xs }}>
+        <View style={{ position: "absolute", top: spacing.xs, right: spacing.xs, alignItems: "flex-end", gap: 4 }}>
           <ResImage kind="element" value={agent.element} style={{ width: 16, height: 16, borderRadius: 8 }}
             fallback={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: elementColor }} />} />
+          {agent.wishlist ? <Heart size={16} color={colors.brandSecondary} weight="fill" /> : null}
         </View>
-
-        {agent.wishlist ? (
-          <View style={{ position: "absolute", bottom: 28, right: spacing.xs }}>
-            <Heart size={16} color={colors.brandSecondary} weight="fill" />
-          </View>
-        ) : null}
 
         {/* name scrim */}
         <LinearGradient
@@ -107,6 +105,12 @@ export function AgentPortrait({
         {owned ? (
           <View style={{ position: "absolute", bottom: 26, left: spacing.xs }}>
             <Badge label={`M${agent.mindscape}W${agent.hasSignatureEngine ? agent.engineRank : 0}`} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
+          </View>
+        ) : null}
+
+        {sinceRerun != null ? (
+          <View style={{ position: "absolute", bottom: 26, right: spacing.xs }}>
+            <Badge label={`${sinceRerun} j`} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
           </View>
         ) : null}
       </View>

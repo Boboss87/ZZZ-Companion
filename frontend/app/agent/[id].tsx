@@ -107,25 +107,28 @@ export default function AgentDetailScreen() {
         {tab === "fiche" ? (
           <>
             <Card>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: "row", gap: spacing.md }}>
                 <ResImage
                   kind="portrait"
                   value={agent.name}
-                  style={{ width: 56, height: 64, borderRadius: radius.md }}
+                  style={{ width: 120, height: 150, borderRadius: radius.md }}
                   fallback={
-                    <View style={{ width: 56, height: 64, borderRadius: radius.md, backgroundColor: el, alignItems: "center", justifyContent: "center" }}>
-                      <AppText style={{ fontFamily: fonts.display, fontSize: 20, color: "#0A0A0A" }}>{agent.name.slice(0, 2).toUpperCase()}</AppText>
+                    <View style={{ width: 120, height: 150, borderRadius: radius.md, backgroundColor: el, alignItems: "center", justifyContent: "center" }}>
+                      <AppText style={{ fontFamily: fonts.display, fontSize: 40, color: "#0A0A0A" }}>{agent.name.slice(0, 2).toUpperCase()}</AppText>
                     </View>
                   }
                 />
-                <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1 }}>{agent.name}</AppText>
-                <Badge label={mxwx} bg={colors.surfaceTertiary} fg={colors.info} />
+                <View style={{ flex: 1, justifyContent: "center", gap: spacing.sm }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm }}>
+                    <AppText variant="title" numberOfLines={1} style={{ flex: 1 }}>{agent.name}</AppText>
+                    <Badge label={mxwx} bg={colors.surfaceTertiary} fg={colors.info} />
+                  </View>
+                  <AppText variant="body">{agent.rank} · {agent.element}</AppText>
+                  <AppText variant="body">{agent.specialization}</AppText>
+                  <AppText variant="body" color={colors.muted}>{agent.faction || "Sans faction"}</AppText>
+                  <AppText variant="body" color={agent.owned ? colors.success : colors.muted}>{agent.owned ? "Possédé" : "Non possédé"}</AppText>
+                </View>
               </View>
-              <InfoRow label="Rang" value={agent.rank} />
-              <InfoRow label="Élément" value={agent.element} />
-              <InfoRow label="Spécialisation" value={agent.specialization} />
-              <InfoRow label="Faction" value={agent.faction || "—"} />
-              <InfoRow label="Statut" value={agent.owned ? "Possédé" : "Non possédé"} />
             </Card>
             <Card>
               <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Bannières</AppText>

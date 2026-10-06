@@ -1,0 +1,27 @@
+{
+  "summary": "Frontend-only regression test for the faction visibility fix on the agent Fiche tab. All 4 scenarios pass on 390x844 viewport. Created a new agent via ZZZdex '+' (AsyncStorage was empty); with an empty faction the header card now displays 'Sans faction' in muted color under the specialization line; after editing the FACTION field to 'Victoria Housekeeping' and closing the edit sheet, the header card updates to 'Victoria Housekeeping'. The rest of the Fiche header card renders correctly (name 'Nouvel agent', rank · element 'S · Ice', specialization 'Attack', M0W0 badge, 'Non possédé' state, 120x150 cyan portrait fallback with 'NO' initials). The Bannières card renders with 'Première bannière', 'Dernière bannière', 'Nombre de reruns' and 'Jours depuis rerun' (showed '462 j' after setting lastBanner=01.07.2025). ZZZdex regression: the agent tile shows '462 j' at bottom-right confirming the days-since-rerun badge is intact. No console or page errors observed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/04_fiche_empty_faction.png",
+    "/tmp/06_fiche_with_faction.png",
+    "/tmp/07_fiche_with_banner.png",
+    "/tmp/08_zzzdex_tile.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: in /app/frontend/app/agent/[id].tsx line 128, 'Sans faction' uses colors.muted (same as a filled faction value when name is present); if the intent was to visually distinguish empty vs filled, consider italic or a slightly different color. Not blocking - matches the stated spec."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "Created one in-memory agent 'Nouvel agent' via the ZZZdex '+' button during each test session (AsyncStorage, local only). No persistence between browser sessions required.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "App has no backend. Agents live in AsyncStorage via /app/frontend/src/store/AppStore. To test agent screens, create one via ZZZdex '+' (routes to /agent/{id}?edit=1 with edit sheet open). FACTION field in edit sheet has no testID - use xpath '//*[text()=\"FACTION\"]/following::input[1]'. Close sheet with [data-testid=\"close-edit-agent\"]. The agent detail route is /agent/{id}.",
+  "rca_of_issue": "Original bug: faction line in Fiche header card was conditionally rendered only when agent.faction was truthy. Fix at /app/frontend/app/agent/[id].tsx:128 renders the AppText unconditionally and falls back to 'Sans faction' when faction is empty: `{agent.faction || \"Sans faction\"}`. Verified visible for both empty and non-empty faction values."
+}
