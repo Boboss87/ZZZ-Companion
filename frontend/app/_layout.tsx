@@ -13,6 +13,7 @@ import { AutoBackupGate } from "@/src/components/AutoBackupGate";
 import { Loading, ToastProvider } from "@/src/components/ui";
 import { queryClient } from "@/src/query-client";
 import { AppStoreProvider, useStore } from "@/src/store/AppStore";
+import { ResourcesProvider } from "@/src/store/resources";
 import { applyThemeMode, ThemeSchemeProvider, useTheme } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
@@ -48,7 +49,9 @@ function ThemedShell({ ready }: { ready: boolean }) {
   const { state } = useStore();
   return (
     <ThemeSchemeProvider mode={state.settings.themeMode}>
-      <InnerChrome ready={ready} mode={state.settings.themeMode} />
+      <ResourcesProvider>
+        <InnerChrome ready={ready} mode={state.settings.themeMode} />
+      </ResourcesProvider>
     </ThemeSchemeProvider>
   );
 }

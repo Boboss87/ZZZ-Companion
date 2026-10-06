@@ -99,3 +99,7 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 **Phase 4 — ZZZdex** : fiche consultation (lecture seule) + edition (BottomSheet) + wishlist ; onglet Builds conserve ; grille visuelle (badges rang/spe/element, MxWx si possede, coeur wishlist, grise si non possede) ; tris Rerun(decroissant)/Nom/Element/Spe.
 - Teste : iteration_5 (Phase 1-3) et iteration_6 (Phase 4), tous verts.
 **Phase 5 — Systeme de ressources (A FAIRE, natif Android uniquement)** : resolution auto des images WebP par nom normalise (portraits/badges/icones), dossier local via SAF puis URL distante ; non testable en apercu Expo Go/web.
+
+## V1.1 — ajustements builds + Phase 5 (ressources) — fait
+- Builds : sous-stats prioritaires et priorite des competences affichees avec " > " ; competences en liste deroulante (Core/Basic/EX/Ultimate/Assist/Dodge). Teste iteration_7.
+- Phase 5 (fondation) : resolveur de ressources generique (noms WebP normalises : zhu_yuan.webp, rank_s.webp, fire.webp, anomaly.webp), ResourcesProvider, carte Reglages (choix dossier Android via SAF / URL distante / retirer), portraits + badges via ResImage avec fallback initiales+badges. L'URL distante est testable ; le choix de dossier local Android n'est testable que sur build natif. Teste iteration_7 (5/5).

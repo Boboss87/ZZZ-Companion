@@ -392,6 +392,9 @@ export const SUB_STATS: string[] = [
   "Crit RATE", "Crit ATK", "Anomaly Proficiency", "PEN",
 ];
 
+// Skill-priority options (ZZZ skill types).
+export const SKILL_TYPES: string[] = ["Core", "Basic", "EX", "Ultimate", "Assist", "Dodge"];
+
 export function defaultOptionLists() {
   return {
     elements: [...ELEMENTS],

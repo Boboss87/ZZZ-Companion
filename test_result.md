@@ -235,3 +235,19 @@
 ## agent_communication:
 ##     -agent: "main"
 ##     -message: "Phase 4 done. Agent detail is now consultation-first (FICHE tab read-only + BUILDS tab) with a ✏️ edit BottomSheet and ❤️ wishlist. Grid tiles show rank+spec+element badges, MxWx for owned, wishlist heart, dimmed if unowned. Sorting: rerun(desc)/name/element/spec. Also fixed the Passer-au-patch-suivant confirm to an inline pane."
+
+## ITERATION 7 — build edits ( ">" separator + skills dropdown) + Phase 5 resources (settings UI; folder native-only)
+## frontend:
+##   - task: "Build substats & skills use ' > ' priority separator; skills is a dropdown (Core/Basic/EX/Ultimate/Assist/Dodge)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/agent/[id].tsx, frontend/src/components/ui.tsx, frontend/src/store/gameData.ts"
+##     needs_retesting: true
+##   - task: "Resource system: resolver + ResourcesProvider + Settings card (folder pick Android / remote URL) + portrait/badge images with fallback"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/store/resources.tsx, frontend/app/_layout.tsx, frontend/app/(tabs)/settings.tsx, frontend/src/components/AgentPortrait.tsx, frontend/app/agent/[id].tsx"
+##     needs_retesting: true
+## agent_communication:
+##     -agent: "main"
+##     -message: "Build edits: substats MultiSelect and new skills MultiSelect (SKILL_TYPES) both render/store with ' > '. Resources: generic resolver (normalized webp filenames), provider, settings card with remote URL (testable) + Android folder pick (native-only, shows a note on web). Portraits/badges use ResImage with fallback to initials/badges when no source — so in web preview nothing visually changes (expected)."

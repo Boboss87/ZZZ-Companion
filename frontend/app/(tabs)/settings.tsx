@@ -25,6 +25,7 @@ import {
   useToast,
 } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
+import { useResources } from "@/src/store/resources";
 import { batteryDays, getFarmEnergy, presetSummary } from "@/src/store/farmEngine";
 import { Preset } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -206,6 +207,8 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        <ResourcesCard />
+
         {/* Backup */}
         <Card onPress={() => router.push("/backup")} testID="settings-backup-card">
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -327,6 +330,66 @@ function PresetStepRow({ label, value, onChange, step = 1 }: { label: string; va
     </View>
   );
 }
+
+function ResourcesCard() {
+  const { colors } = useTheme();
+  const res = useResources();
+  const [url, setUrl] = useState("");
+  const inputStyle = {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.onSurface,
+    backgroundColor: colors.surfaceTertiary,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
+  } as const;
+  return (
+    <Card testID="settings-resources-card">
+      <AppText variant="subtitle">Ressources graphiques</AppText>
+      <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+        Images WebP nommées d&apos;après l&apos;agent : portrait = zhu_yuan.webp · rang = rank_s.webp · élément = fire.webp · spé = anomaly.webp. À défaut : initiales + badges.
+      </AppText>
+      <View style={{ backgroundColor: colors.surfaceSecondary, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm }}>
+        <AppText variant="label" color={colors.muted}>SOURCE ACTUELLE</AppText>
+        <AppText variant="body" numberOfLines={2}>{res.folder || "Aucune (initiales + badges)"}</AppText>
+        {res.folder && !res.isRemote ? (
+          <AppText variant="caption" color={colors.muted}>{res.count} fichier(s) détecté(s)</AppText>
+        ) : null}
+      </View>
+      {res.isAndroid ? (
+        <View style={{ marginBottom: spacing.sm }}>
+          <PrimaryButton label="Choisir un dossier (Android)" onPress={() => res.pickFolder()} testID="pick-folder-btn" />
+        </View>
+      ) : (
+        <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+          La sélection de dossier local est disponible sur un build Android.
+        </AppText>
+      )}
+      <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>OU URL DISTANTE</AppText>
+      <TextInput
+        testID="remote-url-input"
+        value={url}
+        onChangeText={setUrl}
+        placeholder="https://exemple.com/ressources"
+        placeholderTextColor={colors.muted}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={inputStyle}
+      />
+      <PrimaryButton label="Appliquer l'URL" onPress={() => { if (url.trim()) { res.setRemote(url.trim()); haptic.success(); } }} testID="set-remote-btn" />
+      {res.folder ? (
+        <View style={{ marginTop: spacing.sm }}>
+          <PrimaryButton label="Retirer la source" variant="ghost" onPress={() => res.clearFolder()} testID="clear-folder-btn" />
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
 
 const useStyles = makeStyles((c) => ({
   cardHead: { flexDirection: "row", gap: spacing.sm, alignItems: "center", marginBottom: spacing.xs },

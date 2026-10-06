@@ -8,7 +8,8 @@ import { BottomSheet } from "@/src/components/BottomSheet";
 import { AppText, Badge, Card, Chip, DateField, MultiSelect, PrimaryButton, Select, Stepper, haptic, useToast } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
 import { fmtDate, daysUntil } from "@/src/store/format";
-import { RANKS } from "@/src/store/gameData";
+import { ResImage } from "@/src/store/resources";
+import { RANKS, SKILL_TYPES } from "@/src/store/gameData";
 import { Build, OptionLists } from "@/src/store/types";
 import { ELEMENT_COLORS, fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
@@ -106,7 +107,17 @@ export default function AgentDetailScreen() {
         {tab === "fiche" ? (
           <>
             <Card>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}>
+                <ResImage
+                  kind="portrait"
+                  value={agent.name}
+                  style={{ width: 56, height: 64, borderRadius: radius.md }}
+                  fallback={
+                    <View style={{ width: 56, height: 64, borderRadius: radius.md, backgroundColor: el, alignItems: "center", justifyContent: "center" }}>
+                      <AppText style={{ fontFamily: fonts.display, fontSize: 20, color: "#0A0A0A" }}>{agent.name.slice(0, 2).toUpperCase()}</AppText>
+                    </View>
+                  }
+                />
                 <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1 }}>{agent.name}</AppText>
                 <Badge label={mxwx} bg={colors.surfaceTertiary} fg={colors.info} />
               </View>
@@ -131,7 +142,7 @@ export default function AgentDetailScreen() {
                 <BuildLine label="Disc 4" value={activeBuild.mainStat4 || "—"} />
                 <BuildLine label="Disc 5" value={activeBuild.mainStat5 || "—"} />
                 <BuildLine label="Disc 6" value={activeBuild.mainStat6 || "—"} />
-                <BuildLine label="Priorité substats" value={activeBuild.substats.join(", ") || "—"} />
+                <BuildLine label="Priorité substats" value={activeBuild.substats.join(" > ") || "—"} />
                 <BuildLine label="Priorité skills" value={activeBuild.skillPriority || "—"} />
                 {activeBuild.caps ? <BuildLine label="Stats / caps" value={activeBuild.caps} /> : null}
               </Card>
@@ -159,7 +170,7 @@ export default function AgentDetailScreen() {
                 <BuildLine label="Set 4pc" value={b.set4} />
                 <BuildLine label="Set 2pc" value={b.set2} />
                 <BuildLine label="Stats 4/5/6" value={`${b.mainStat4} / ${b.mainStat5} / ${b.mainStat6}`} />
-                <BuildLine label="Sous-stats" value={b.substats.join(", ")} />
+                <BuildLine label="Sous-stats" value={b.substats.join(" > ")} />
                 <BuildLine label="Priorité skills" value={b.skillPriority} />
                 <BuildLine label="Moteur" value={b.engine} />
                 {b.caps ? <BuildLine label="Caps" value={b.caps} /> : null}
@@ -281,8 +292,15 @@ function BuildSheet({ editing, onClose, onSave, lists }: { editing: Build | null
       <SelectField label="STAT PRINCIPALE — DISQUE 4" options={lists.mainStats} value={draft.mainStat4} onChange={(v) => set({ mainStat4: v })} testID="build-stat4" />
       <SelectField label="STAT PRINCIPALE — DISQUE 5" options={lists.mainStats} value={draft.mainStat5} onChange={(v) => set({ mainStat5: v })} testID="build-stat5" />
       <SelectField label="STAT PRINCIPALE — DISQUE 6" options={lists.mainStats} value={draft.mainStat6} onChange={(v) => set({ mainStat6: v })} testID="build-stat6" />
-      <MultiSelectField label="SOUS-STATS PRIORITAIRES" options={lists.subStats} values={draft.substats} onChange={(v) => set({ substats: v })} testID="build-substats" />
-      <EditText label="PRIORITÉ DES COMPÉTENCES" value={draft.skillPriority} onChange={(t) => set({ skillPriority: t })} />
+      <MultiSelectField label="SOUS-STATS PRIORITAIRES" options={lists.subStats} values={draft.substats} onChange={(v) => set({ substats: v })} separator=" > " testID="build-substats" />
+      <MultiSelectField
+        label="PRIORITÉ DES COMPÉTENCES"
+        options={SKILL_TYPES}
+        values={draft.skillPriority ? draft.skillPriority.split(" > ").filter(Boolean) : []}
+        onChange={(v) => set({ skillPriority: v.join(" > ") })}
+        separator=" > "
+        testID="build-skills"
+      />
       <EditText label="MOTEUR RECOMMANDÉ" value={draft.engine} onChange={(t) => set({ engine: t })} />
       <EditText label="ALTERNATIVES" value={draft.alternatives} onChange={(t) => set({ alternatives: t })} />
       <EditText label="CAPS (ex. ATK ≥ 3400)" value={draft.caps} onChange={(t) => set({ caps: t })} />
@@ -302,12 +320,12 @@ function SelectField({ label, value, options, onChange, placeholder, testID }: {
   );
 }
 
-function MultiSelectField({ label, values, options, onChange, testID }: { label: string; values: string[]; options: string[]; onChange: (v: string[]) => void; testID?: string }) {
+function MultiSelectField({ label, values, options, onChange, separator, testID }: { label: string; values: string[]; options: string[]; onChange: (v: string[]) => void; separator?: string; testID?: string }) {
   const { colors } = useTheme();
   return (
     <View style={{ marginBottom: spacing.md }}>
       <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>{label}</AppText>
-      <MultiSelect values={values} options={options} onChange={onChange} testID={testID} />
+      <MultiSelect values={values} options={options} onChange={onChange} separator={separator} testID={testID} />
     </View>
   );
 }

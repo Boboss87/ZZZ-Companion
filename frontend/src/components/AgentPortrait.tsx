@@ -6,6 +6,7 @@ import { Heart } from "phosphor-react-native";
 
 import { ELEMENT_COLORS, fonts, radius, spacing, useTheme } from "@/src/theme";
 import { Agent } from "@/src/store/types";
+import { ResImage } from "@/src/store/resources";
 import { AppText, Badge, haptic } from "./ui";
 
 function initials(name: string): string {
@@ -51,34 +52,40 @@ export function AgentPortrait({
           opacity: owned ? 1 : 0.45,
         }}
       >
-        {agent.portrait ? (
-          <Image
-            source={{ uri: agent.portrait }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-        ) : (
-          <LinearGradient
-            colors={[base, owned ? "#0A0A0A" : colors.surface]}
-            start={{ x: 0.5, y: 0 }}
-            end={{ x: 0.5, y: 1 }}
-            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-          >
-            <AppText
-              style={{ fontFamily: fonts.display, fontSize: size * 0.34, color: owned ? "#0A0A0A" : colors.muted }}
-            >
-              {initials(agent.name)}
-            </AppText>
-          </LinearGradient>
-        )}
+        <ResImage
+          kind="portrait"
+          value={agent.name}
+          style={{ width: "100%", height: "100%" }}
+          fallback={
+            agent.portrait ? (
+              <Image source={{ uri: agent.portrait }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+            ) : (
+              <LinearGradient
+                colors={[base, owned ? "#0A0A0A" : colors.surface]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+              >
+                <AppText
+                  style={{ fontFamily: fonts.display, fontSize: size * 0.34, color: owned ? "#0A0A0A" : colors.muted }}
+                >
+                  {initials(agent.name)}
+                </AppText>
+              </LinearGradient>
+            )
+          }
+        />
 
         {/* rank + spec corner */}
         <View style={{ position: "absolute", top: spacing.xs, left: spacing.xs, flexDirection: "row", gap: 3 }}>
-          <Badge label={agent.rank} bg={agent.rank === "S" ? colors.brandPrimary : colors.surfaceTertiary} fg={agent.rank === "S" ? colors.onBrandPrimary : colors.onSurfaceTertiary} />
-          <Badge label={agent.specialization.slice(0, 3).toUpperCase()} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
+          <ResImage kind="rank" value={agent.rank} style={{ width: 18, height: 18, borderRadius: 4 }}
+            fallback={<Badge label={agent.rank} bg={agent.rank === "S" ? colors.brandPrimary : colors.surfaceTertiary} fg={agent.rank === "S" ? colors.onBrandPrimary : colors.onSurfaceTertiary} />} />
+          <ResImage kind="spec" value={agent.specialization} style={{ width: 18, height: 18, borderRadius: 4 }}
+            fallback={<Badge label={agent.specialization.slice(0, 3).toUpperCase()} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />} />
         </View>
         <View style={{ position: "absolute", top: spacing.xs, right: spacing.xs }}>
-          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: elementColor }} />
+          <ResImage kind="element" value={agent.element} style={{ width: 16, height: 16, borderRadius: 8 }}
+            fallback={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: elementColor }} />} />
         </View>
 
         {agent.wishlist ? (

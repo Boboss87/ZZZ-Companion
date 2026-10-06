@@ -1,0 +1,40 @@
+{
+  "summary": "Frontend-only re-test of V1.1 Phase 5 foundation: (a) Build 'SOUS-STATS PRIORITAIRES' separator is now ' > ' (not comma); (b) 'PRIORITÉ DES COMPÉTENCES' is now a MultiSelect dropdown with 6 ZZZ skill types; (c) new Settings 'Ressources graphiques' card with remote URL + clear flow + Android-only note. 5/5 scenarios PASS. All target testIDs are present. Separator wiring verified end-to-end: default build defaults ['Crit RATE','Crit ATK'] / 'EX > Basic > Ultimate' display correctly in the build-substats and build-skills controls; after +Core the skills control updates to 'EX > Basic > Ultimate > Core'; the 6 skill types (Core, Basic, EX, Ultimate, Assist, Dodge) are exposed as build-skills-opt-* dropdown items. On save, the build card lines 'Sous-stats' and 'Priorité skills' both show the ' > ' joined values; the FICHE 'Build actif' block also shows 'Crit RATE > Crit ATK' and 'EX > Basic > Ultimate'. Persistence confirmed by inspecting localStorage key 'zzz_companion_state_v1' (agent0Builds[1]={name:'Nouveau build', substats:['Crit RATE','Crit ATK'], skillPriority:'EX > Basic > Ultimate > Core'}) and after page.reload (BUILDS tab still lists both 'Build standard' and 'Nouveau build' with the correct ' > ' lines). Resources card: initial SOURCE ACTUELLE='Aucune (initiales + badges)', pick-folder-btn correctly ABSENT on web (Android-only note shown), clear-folder-btn correctly ABSENT. After remote-url-input='https://example.com/res' + Appliquer l'URL (set-remote-btn), SOURCE ACTUELLE updates to that URL and 'Retirer la source' (clear-folder-btn) appears. Reload persists the URL. Tapping clear-folder-btn resets to 'Aucune' and the button disappears. No visual regression: with no source set, the ZZZdex grid tile shows initials 'NA' + 'S' rank badge + 'ATT' spec badge + Ice element dot (cyan), and the agent FICHE header shows the 'NO' initials placeholder on Ice-colored background (ResImage fallback renders). 6-tab bottom nav (Accueil/Farm/Projection/Historique/ZZZdex/Réglages) all reachable; Projection screen renders cleanly.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/05_build_sheet.png",
+    "/tmp/06_after_save_build.png",
+    "/tmp/07_fiche.png",
+    "/tmp/post_reload_builds.png",
+    "/tmp/resources_initial.png",
+    "/tmp/resources_after_apply.png",
+    "/tmp/resources_cleared.png",
+    "/tmp/fiche_initials.png",
+    "/tmp/grid_fallbacks.png",
+    "/tmp/projection_screen.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ui.tsx:516-564 — MultiSelect now exposes a `separator` prop (default ', ') used for both the collapsed-label join and nothing else; onChange still passes string[]. Clean. Options render below the control via inline accordion with testID-${label}-opt-${o} per option. ✅",
+    "agent/[id].tsx:295-303 — BuildSheet uses MultiSelectField with separator=' > ' for substats, and for skills converts the stored string to array via `draft.skillPriority.split(' > ').filter(Boolean)` and back on save with `.join(' > ')`. skillPriority remains a string type (no schema break). ✅",
+    "agent/[id].tsx:145,174 — FICHE 'Priorité substats' line uses `activeBuild.substats.join(' > ')`; BUILDS 'Sous-stats' line also uses ' > '. Consistent everywhere. ✅",
+    "resources.tsx:21-26 — resourceFilename normalizes to lowercase_underscore and prefixes rank_ for the 'rank' kind. Matches the on-screen note in settings.tsx:354 (portrait=zhu_yuan.webp, rank=rank_s.webp). ✅",
+    "resources.tsx:51-72 — scan() short-circuits (empty map, ready=true) when folder is empty, remote, or non-Android — exactly what the web preview needs. ✅",
+    "resources.tsx:78-86 — resolve() returns null for empty folder/missing file; ResImage returns `fallback` when uri is null OR when the Image onError fires (failed state resets on uri change via useEffect). Safe fallback behavior means no broken images on web with no source. ✅",
+    "settings.tsx:363-371 — pick-folder-btn is wrapped in `res.isAndroid ?` branch, falling back to the French note on web as required. ✅",
+    "settings.tsx:383-388 — set-remote-btn trims the URL before applying; clear-folder-btn is only rendered when `res.folder` is truthy, matching the spec. ✅"
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A", "frontend": "100% (5/5 scenarios PASS)" },
+  "seed_data_creation": "Through UI during tests, in a fresh localStorage session: one agent 'Nouvel agent' (Ice/Attack/S) with two builds — 'Build standard' (default) and 'Nouveau build' (substats ['Crit RATE','Crit ATK'], skillPriority 'EX > Basic > Ultimate > Core'); settings.resourceFolderUri temporarily set to 'https://example.com/res' then cleared. Each Playwright context starts clean.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "URL: https://mobile-dev-blueprint.preview.emergentagent.com (offline app, each Playwright context = clean storage). Mobile viewport 390x844. Persistence note: AppStore writes to AsyncStorage/localStorage via a useEffect([state]) with no debounce; after save ensure >= 2500ms wait before page.reload to avoid losing the last mutation (localStorage write is sync but the setState → useEffect commit → write chain can race a quick reload). The add-agent flow pushes `/agent/<id>?edit=1`, so on reload the edit BottomSheet re-opens over the fiche; click close-edit-agent first before interacting with the agent screen. MultiSelect options have testIDs of the form `${parentTestId}-opt-${optionLabel}` (e.g. 'build-skills-opt-Core', 'build-substats-opt-Crit ATK') — spaces are preserved in the id string.",
+  "rca_of_issue": "N/A — all Phase 5 (foundation) features pass. Previous flaky-looking persistence miss during initial run was a reload race (write-vs-reload), not a product bug; confirmed by inspecting localStorage before the reload and by re-running with a longer post-save wait."
+}

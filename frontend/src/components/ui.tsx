@@ -518,12 +518,14 @@ export function MultiSelect({
   options,
   onChange,
   placeholder = "Choisir…",
+  separator = ", ",
   testID,
 }: {
   values: string[];
   options: string[];
   onChange: (v: string[]) => void;
   placeholder?: string;
+  separator?: string;
   testID?: string;
 }) {
   const { colors } = useTheme();
@@ -535,7 +537,7 @@ export function MultiSelect({
     <View>
       <Pressable testID={testID} onPress={() => { haptic.select(); setOpen((o) => !o); }} style={styles.control}>
         <AppText variant="body" color={values.length ? colors.onSurface : colors.muted} numberOfLines={2} style={{ flex: 1 }}>
-          {values.length ? values.join(", ") : placeholder}
+          {values.length ? values.join(separator) : placeholder}
         </AppText>
         <CaretDown size={16} color={colors.muted} weight="bold" />
       </Pressable>
