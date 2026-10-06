@@ -4,10 +4,9 @@ import React, { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AgentPortrait } from "@/src/components/AgentPortrait";
 import { AppText, Badge, Card, Loading, ProgressBar } from "@/src/components/ui";
 import { batteryDays, computeFarm, fmtDays } from "@/src/store/farmEngine";
-import { daysUntil, fmtDate } from "@/src/store/format";
+import { daysUntil } from "@/src/store/format";
 import { computeProjection } from "@/src/store/projectionEngine";
 import { computeBannerStats, desiredCostEstimate } from "@/src/store/pullStats";
 import { useStore } from "@/src/store/AppStore";
@@ -24,10 +23,13 @@ export default function HomeScreen() {
   if (!ready) return <Loading />;
 
   const active = farm.statuses.filter((s) => s.agent && !s.complete);
-  const current = active[0];
-  const nextRow = current?.rows.find((r) => r.remaining > 0);
-  const currentObj = current ? state.objectives.find((o) => o.id === current.objectiveId) : undefined;
-  const delay = daysUntil(currentObj?.targetDate ?? "");
+  let cumulative = 0;
+  const dashboard = active.map((s) => {
+    cumulative += s.daysLeft;
+    const obj = state.objectives.find((o) => o.id === s.objectiveId);
+    const d = daysUntil(obj?.targetDate ?? "");
+    return { status: s, cumulative, delay: d, delta: d != null ? d - cumulative : null };
+  });
 
   const owned = state.agents.filter((a) => a.owned).length;
   const total = state.agents.length;
@@ -50,48 +52,44 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: spacing.xxl }}
       >
-        {/* Farm assistant — primary card */}
+        {/* Farm dashboard — overview of all active objectives */}
         <Card accent onPress={() => router.navigate("/farm")} testID="home-farm-card">
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.sm }}>
             <Badge label="ASSISTANT DE FARM" bg={colors.brandPrimary} fg={colors.onBrandPrimary} />
             <CaretRight size={18} color={colors.muted} />
           </View>
-          {current && current.agent ? (
-            <>
-              <View style={{ flexDirection: "row", gap: spacing.md, alignItems: "center" }}>
-                <AgentPortrait agent={current.agent} size={64} onPress={() => router.navigate("/farm")} />
-                <View style={{ flex: 1 }}>
-                  <AppText variant="title">{current.agent.name}</AppText>
-                  {nextRow ? (
-                    <AppText variant="body" color={colors.onSurfaceSecondary}>
-                      Prochain : {nextRow.materialName}
-                    </AppText>
-                  ) : null}
-                  <AppText variant="body" color={colors.muted}>
-                    Temps restant estimé : {fmtDays(current.daysLeft)}
-                  </AppText>
-                  {delay != null ? (
-                    <AppText variant="body" color={current.daysLeft > delay ? colors.error : colors.info}>
-                      Délai restant : {delayLabel(delay)}
-                      {currentObj?.targetDate ? ` (${fmtDate(currentObj.targetDate)})` : ""}
-                    </AppText>
-                  ) : null}
-                </View>
-              </View>
-              <View style={{ marginTop: spacing.md, gap: 4 }}>
-                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <AppText variant="label" color={colors.muted}>PROGRESSION</AppText>
-                  <AppText variant="label" color={colors.brandPrimary}>
-                    {Math.round(current.progress * 100)}%
-                  </AppText>
-                </View>
-                <ProgressBar value={current.progress} />
-              </View>
-            </>
-          ) : (
+          {dashboard.length === 0 ? (
             <AppText variant="body" color={colors.muted}>
               Aucun objectif actif. Ajoute un personnage à préparer.
             </AppText>
+          ) : (
+            dashboard.map((d, i) => (
+              <View
+                key={d.status.objectiveId}
+                style={{ gap: 6, paddingVertical: spacing.sm, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: colors.divider }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                  <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1 }}>{d.status.agent?.name}</AppText>
+                  <AppText variant="label" color={colors.muted}>{Math.round(d.status.progress * 100)}%</AppText>
+                  {d.delta != null ? (
+                    <Badge
+                      label={`${d.delta >= 0 ? "▲ +" : "▼ "}${d.delta} j`}
+                      bg={d.delta >= 0 ? colors.success : colors.error}
+                      fg={d.delta >= 0 ? colors.onSuccess : colors.onError}
+                    />
+                  ) : null}
+                </View>
+                <ProgressBar value={d.status.progress} />
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <AppText variant="caption" color={colors.muted}>
+                    Restant {fmtDays(d.status.daysLeft)} · Cumulé {fmtDays(d.cumulative)}
+                  </AppText>
+                  {d.delay != null ? (
+                    <AppText variant="caption" color={colors.muted}>Délai {delayLabel(d.delay)}</AppText>
+                  ) : null}
+                </View>
+              </View>
+            ))
           )}
         </Card>
 

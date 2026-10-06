@@ -8,12 +8,13 @@ import { AgentPortrait } from "@/src/components/AgentPortrait";
 import { AppText, Chip, EmptyState, Loading, haptic } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
 import { ELEMENTS } from "@/src/store/gameData";
+import { daysUntil } from "@/src/store/format";
 import { Agent } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 type Status = "all" | "owned" | "unowned" | "wishlist";
-type SortMode = "banner" | "name" | "rank";
-const SORT_LABEL: Record<SortMode, string> = { banner: "Récent", name: "Nom", rank: "Rareté" };
+type SortMode = "rerun" | "name" | "element" | "spec";
+const SORT_LABEL: Record<SortMode, string> = { rerun: "Rerun", name: "Nom", element: "Élément", spec: "Spé" };
 
 export default function ZZZdexScreen() {
   const insets = useSafeAreaInsets();
@@ -27,7 +28,7 @@ export default function ZZZdexScreen() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>("all");
   const [element, setElement] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortMode>("banner");
+  const [sort, setSort] = useState<SortMode>("rerun");
 
   const cols = width >= 700 ? 4 : 3;
   const size = (width - spacing.lg * 2 - spacing.sm * (cols - 1)) / cols;
@@ -41,15 +42,20 @@ export default function ZZZdexScreen() {
       if (element && a.element !== element) return false;
       return true;
     });
+    // days since last rerun (bigger = more likely to come back). Unknown dates go last.
+    const sinceKey = (a: Agent) => {
+      const du = daysUntil(a.lastBanner);
+      return du == null ? -Infinity : -du;
+    };
     list.sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
-      if (sort === "rank") return a.rank === b.rank ? a.name.localeCompare(b.name) : a.rank === "S" ? -1 : 1;
-      const ka = a.lastBanner || a.releaseDate || "";
-      const kb = b.lastBanner || b.releaseDate || "";
+      if (sort === "element") return a.element.localeCompare(b.element) || a.name.localeCompare(b.name);
+      if (sort === "spec") return a.specialization.localeCompare(b.specialization) || a.name.localeCompare(b.name);
+      // rerun: most days since last rerun first
+      const ka = sinceKey(a);
+      const kb = sinceKey(b);
       if (ka === kb) return a.name.localeCompare(b.name);
-      if (!ka) return 1;
-      if (!kb) return -1;
-      return kb.localeCompare(ka);
+      return kb - ka;
     });
     return list;
   }, [state.agents, query, status, element, sort]);
@@ -71,6 +77,7 @@ export default function ZZZdexScreen() {
       portrait: "",
       releaseDate: "",
       lastBanner: "",
+      reruns: 0,
       promoMaterial: "Certificat",
       skillMaterial: "Défi d'expert",
       bossMaterial: "Matériau de boss",
@@ -144,7 +151,7 @@ export default function ZZZdexScreen() {
           <Chip
             label={`Tri : ${SORT_LABEL[sort]}`}
             selected
-            onPress={() => setSort(sort === "banner" ? "name" : sort === "name" ? "rank" : "banner")}
+            onPress={() => setSort(sort === "rerun" ? "name" : sort === "name" ? "element" : sort === "element" ? "spec" : "rerun")}
             testID="sort-cycle"
           />
           <View style={styles.chipDivider} />

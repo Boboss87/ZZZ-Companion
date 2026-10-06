@@ -18,6 +18,7 @@ import {
   Build,
   FarmObjective,
   FarmYield,
+  GameConfig,
   OptionLists,
   PermanentIncome,
   Preset,
@@ -37,14 +38,107 @@ export function genId(prefix: string): string {
 }
 
 // Fill any missing fields introduced by later versions so old saves keep working.
+// Each list item (agent/build/objective/patch/expense) is backfilled field-by-field
+// so adding new fields never breaks an older JSON backup.
+function mBuild(bl: Partial<Build> = {}): Build {
+  return {
+    id: bl.id ?? genId("b"),
+    name: bl.name ?? "Build",
+    set4: bl.set4 ?? "",
+    set2: bl.set2 ?? "",
+    mainStat4: bl.mainStat4 ?? "",
+    mainStat5: bl.mainStat5 ?? "",
+    mainStat6: bl.mainStat6 ?? "",
+    substats: Array.isArray(bl.substats) ? bl.substats : [],
+    skillPriority: bl.skillPriority ?? "",
+    engine: bl.engine ?? "",
+    alternatives: bl.alternatives ?? "",
+    caps: bl.caps ?? "",
+    official: bl.official ?? false,
+  };
+}
+
+function mAgent(a: Partial<Agent> = {}): Agent {
+  const builds = Array.isArray(a.builds) ? a.builds.map(mBuild) : [];
+  return {
+    id: a.id ?? genId("a"),
+    name: a.name ?? "",
+    rank: a.rank ?? "S",
+    element: a.element ?? "Ice",
+    specialization: a.specialization ?? "Attack",
+    faction: a.faction ?? "",
+    portrait: a.portrait ?? "",
+    releaseDate: a.releaseDate ?? "",
+    lastBanner: a.lastBanner ?? "",
+    reruns: a.reruns ?? 0,
+    promoMaterial: a.promoMaterial ?? "",
+    skillMaterial: a.skillMaterial ?? "",
+    bossMaterial: a.bossMaterial ?? "",
+    owned: a.owned ?? false,
+    mindscape: a.mindscape ?? 0,
+    hasSignatureEngine: a.hasSignatureEngine ?? false,
+    engineRank: a.engineRank ?? 1,
+    wishlist: a.wishlist ?? false,
+    notes: a.notes ?? "",
+    builds,
+    activeBuildId: a.activeBuildId ?? builds[0]?.id ?? "",
+  };
+}
+
+function mObjective(o: Partial<FarmObjective> = {}): FarmObjective {
+  return {
+    id: o.id ?? genId("obj"),
+    agentId: o.agentId ?? "",
+    presetId: o.presetId ?? "",
+    targetDate: o.targetDate ?? "",
+    ownedSpecific: o.ownedSpecific ?? {},
+    createdAt: o.createdAt ?? new Date().toISOString(),
+  };
+}
+
+function mExpense(e: Partial<ProjExpense> = {}): ProjExpense {
+  return {
+    id: e.id ?? genId("e"),
+    name: e.name ?? "",
+    pullCost: e.pullCost ?? 0,
+    actualCost: e.actualCost ?? null,
+  };
+}
+
+function mPatch(p: Partial<ProjPatch> = {}): ProjPatch {
+  return {
+    id: p.id ?? genId("p"),
+    name: p.name ?? "",
+    durationDays: p.durationDays ?? 42,
+    tempIncome: p.tempIncome ?? 30,
+    startDate: p.startDate ?? "",
+    expenses: Array.isArray(p.expenses) ? p.expenses.map(mExpense) : [],
+  };
+}
+
 function migrate(saved: AppState): AppState {
   const base = makeInitialState();
+  const savedConfig = saved.gameConfig as (GameConfig & { farmYield?: unknown; agentProg?: unknown }) | undefined;
+  // One-time clean slate when upgrading from v1: remove the example data the app
+  // shipped with (agents / objectives / projection patches / pull sessions), while
+  // keeping the user's reusable level presets, barème (gameConfig) and dropdown lists.
+  const fromV1 = (saved.version ?? 1) < 2;
+
+  const agents = fromV1 ? [] : Array.isArray(saved.agents) ? saved.agents.map(mAgent) : base.agents;
+  const objectives = fromV1 ? [] : Array.isArray(saved.objectives) ? saved.objectives.map(mObjective) : base.objectives;
+  const pullSessions = fromV1 ? [] : Array.isArray(saved.pullSessions) ? saved.pullSessions : base.pullSessions;
+
   return {
     ...base,
     ...saved,
+    version: 2,
     settings: { ...base.settings, ...saved.settings },
     optionLists: { ...base.optionLists, ...(saved.optionLists ?? {}) },
-    pullSessions: saved.pullSessions ?? base.pullSessions,
+    presets: Array.isArray(saved.presets) && saved.presets.length ? saved.presets : base.presets,
+    agents,
+    objectives,
+    commonStock: saved.commonStock ?? base.commonStock,
+    pullSessions,
     permanentIncomes:
       saved.permanentIncomes && (saved.permanentIncomes[0] as { polyPerDay?: unknown } | undefined)?.polyPerDay !== undefined
         ? saved.permanentIncomes
@@ -58,13 +152,13 @@ function migrate(saved: AppState): AppState {
           polychromes: saved.projection.polychromes ?? 0,
           monochromes: saved.projection.monochromes ?? 0,
           residualSignals: (saved.projection as { residualSignals?: number }).residualSignals ?? 0,
-          patches: saved.projection.patches ?? base.projection.patches,
+          patches: fromV1 ? [] : Array.isArray(saved.projection.patches) ? saved.projection.patches.map(mPatch) : [],
         }
       : base.projection,
-    archivedPatches: saved.archivedPatches ?? base.archivedPatches,
+    archivedPatches: fromV1 ? [] : Array.isArray(saved.archivedPatches) ? saved.archivedPatches : base.archivedPatches,
     gameConfig:
-      saved.gameConfig && (saved.gameConfig as { farmYield?: unknown }).farmYield && (saved.gameConfig as { agentProg?: unknown }).agentProg
-        ? saved.gameConfig
+      savedConfig && savedConfig.farmYield && savedConfig.agentProg
+        ? { ...savedConfig, eventRewardCoefficient: savedConfig.eventRewardCoefficient ?? 1 }
         : base.gameConfig,
   };
 }
@@ -105,7 +199,8 @@ interface StoreContextValue {
   addPatch: () => void;
   updatePatch: (id: string, partial: Partial<ProjPatch>) => void;
   deletePatch: (id: string) => void;
-  closePatch: (id: string) => void;
+  advancePatch: (id: string) => void;
+  validateExpense: (patchId: string, expenseId: string, realCost: number) => void;
   addExpense: (patchId: string, e: Omit<ProjExpense, "id">) => void;
   updateExpense: (patchId: string, expenseId: string, partial: Partial<ProjExpense>) => void;
   deleteExpense: (patchId: string, expenseId: string) => void;
@@ -115,6 +210,7 @@ interface StoreContextValue {
   deletePermanentIncome: (id: string) => void;
   // editable game data (barème)
   setFarmYield: (key: keyof FarmYield, value: number) => void;
+  setEventRewardCoefficient: (value: number) => void;
   setProgRow: (
     table: "agentProg" | "engineProg" | "skillProg" | "coreProg",
     index: number,
@@ -306,7 +402,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
                 id: genId("patch"),
                 name: `Patch ${s.projection.patches.length + 1}`,
                 durationDays: s.settings.patchDurationDays,
-                tempIncome: 20,
+                tempIncome: 30,
+                startDate: s.projection.patches.length === 0 ? new Date().toISOString().slice(0, 10) : "",
                 expenses: [],
               },
             ],
@@ -325,10 +422,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           ...s,
           projection: { ...s.projection, patches: s.projection.patches.filter((p) => p.id !== id) },
         })),
-      closePatch: (id) =>
+      advancePatch: (id) =>
         update((s) => {
-          const patch = s.projection.patches.find((p) => p.id === id);
-          if (!patch) return s;
+          const idx = s.projection.patches.findIndex((p) => p.id === id);
+          if (idx < 0) return s;
+          const patch = s.projection.patches[idx];
           const archived: ArchivedPatch = {
             id: genId("arch"),
             name: patch.name,
@@ -336,12 +434,30 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
             spent: patchSpent(patch),
             closedAt: new Date().toISOString(),
           };
+          const remaining = s.projection.patches.filter((p) => p.id !== id);
+          // The new current patch starts today (real start), subsequent dates re-chain.
+          if (remaining.length > 0) {
+            remaining[0] = { ...remaining[0], startDate: new Date().toISOString().slice(0, 10) };
+          }
           return {
             ...s,
             archivedPatches: [...s.archivedPatches, archived],
-            projection: { ...s.projection, patches: s.projection.patches.filter((p) => p.id !== id) },
+            projection: { ...s.projection, patches: remaining },
           };
         }),
+      validateExpense: (patchId, expenseId, realCost) =>
+        update((s) => ({
+          ...s,
+          projection: {
+            ...s.projection,
+            masterTapes: Math.max(0, s.projection.masterTapes - realCost),
+            patches: s.projection.patches.map((p) =>
+              p.id === patchId
+                ? { ...p, expenses: p.expenses.map((e) => (e.id === expenseId ? { ...e, actualCost: realCost } : e)) }
+                : p,
+            ),
+          },
+        })),
       addExpense: (patchId, e) =>
         update((s) => ({
           ...s,
@@ -393,6 +509,8 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }) {
           ...s,
           gameConfig: { ...s.gameConfig, farmYield: { ...s.gameConfig.farmYield, [key]: value } },
         })),
+      setEventRewardCoefficient: (value) =>
+        update((s) => ({ ...s, gameConfig: { ...s.gameConfig, eventRewardCoefficient: value } })),
       setProgRow: (table, index, key, value) =>
         update((s) => {
           const rows = [...(s.gameConfig[table] as Record<string, number>[])];

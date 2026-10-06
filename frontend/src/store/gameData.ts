@@ -81,6 +81,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     { denny: 100000, expert: 15, infame: 3 },
     { denny: 200000, expert: 30, infame: 4 },
   ],
+  eventRewardCoefficient: 1,
 };
 
 function sumRows<T>(rows: T[], count: number, key: keyof T): number {
@@ -199,6 +200,7 @@ function agent(a: Partial<Agent> & { id: string; name: string; element: Agent["e
     portrait: "",
     releaseDate: "",
     lastBanner: "",
+    reruns: 0,
     promoMaterial: `Certificat ${a.name}`,
     skillMaterial: "Défi d'expert",
     bossMaterial: "Matériau de boss",
@@ -305,7 +307,7 @@ export function makeInitialState(): AppState {
   const stock: Record<string, number> = {};
   COMMON_IDS.forEach((id) => (stock[id] = 0));
   return {
-    version: 1,
+    version: 2,
     settings: {
       dailyEnergy: 320,
       discRuns: 2,
@@ -316,20 +318,12 @@ export function makeInitialState(): AppState {
       themeMode: "dark",
       avgDesiredCost: 130,
       autoBackup: true,
+      resourceFolderUri: "",
     },
     optionLists: defaultOptionLists(),
     presets: DEFAULT_PRESETS,
-    agents: SEED_AGENTS,
-    objectives: [
-      {
-        id: nid("obj"),
-        agentId: "miyabi",
-        presetId: "preset_normal",
-        targetDate: "",
-        ownedSpecific: {},
-        createdAt: new Date().toISOString(),
-      },
-    ],
+    agents: [],
+    objectives: [],
     commonStock: stock,
     pullSessions: [],
     permanentIncomes: [
@@ -347,11 +341,7 @@ export function makeInitialState(): AppState {
       polychromes: 0,
       monochromes: 0,
       residualSignals: 0,
-      patches: [
-        { id: "p1", name: "3.0", durationDays: 42, tempIncome: 20, expenses: [] },
-        { id: "p2", name: "3.1", durationDays: 42, tempIncome: 20, expenses: [] },
-        { id: "p3", name: "3.2", durationDays: 42, tempIncome: 20, expenses: [] },
-      ],
+      patches: [],
     },
     archivedPatches: [],
     lastExportAt: null,

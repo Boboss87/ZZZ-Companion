@@ -34,6 +34,7 @@ export interface Agent {
   portrait: string; // optional url
   releaseDate: string; // ISO date
   lastBanner: string;
+  reruns: number; // number of reruns (manual)
   // technical / farm data (source of truth for the farm assistant)
   promoMaterial: string;
   skillMaterial: string;
@@ -83,6 +84,7 @@ export interface Settings {
   themeMode: ThemeMode;
   avgDesiredCost: number; // fallback avg pulls for a desired character
   autoBackup: boolean; // propose a file backup when leaving the app
+  resourceFolderUri: string; // local (SAF) or remote base for graphical resources
 }
 
 // ---------------------------------------------------------------------------
@@ -128,7 +130,8 @@ export interface ProjPatch {
   id: string;
   name: string;
   durationDays: number;
-  tempIncome: number; // pulls from events
+  tempIncome: number; // estimated event rewards (pulls) over the patch
+  startDate: string; // ISO — set on the first (current) patch; others derived
   expenses: ProjExpense[];
 }
 
@@ -174,6 +177,7 @@ export interface GameConfig {
   engineProg: EngineProgRow[]; // 6 breakpoints
   skillProg: SkillProgRow[]; // 11 rows (1-2 .. 11-12), per single skill
   coreProg: CoreProgRow[]; // 6 rows (A .. F)
+  eventRewardCoefficient: number; // exponent for event-reward distribution (1 = linear)
 }
 
 // User-editable option lists (dropdown choices across the app).

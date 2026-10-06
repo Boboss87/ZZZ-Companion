@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { CaretLeft, Check, Plus, Star, Trash } from "phosphor-react-native";
+import { CaretLeft, Check, Heart, PencilSimple, Plus, Star, Trash } from "phosphor-react-native";
 import React, { useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,11 +7,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet } from "@/src/components/BottomSheet";
 import { AppText, Badge, Card, Chip, DateField, MultiSelect, PrimaryButton, Select, Stepper, haptic, useToast } from "@/src/components/ui";
 import { genId, useStore } from "@/src/store/AppStore";
+import { fmtDate, daysUntil } from "@/src/store/format";
 import { RANKS } from "@/src/store/gameData";
 import { Build, OptionLists } from "@/src/store/types";
 import { ELEMENT_COLORS, fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
-type Tab = "general" | "collection" | "builds" | "notes";
+type Tab = "fiche" | "builds";
 
 export default function AgentDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -20,11 +21,12 @@ export default function AgentDetailScreen() {
   const styles = useStyles();
   const toast = useToast();
   const store = useStore();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const agent = store.state.agents.find((a) => a.id === id);
 
-  const [tab, setTab] = useState<Tab>("general");
+  const [tab, setTab] = useState<Tab>("fiche");
   const [editingBuild, setEditingBuild] = useState<Build | null>(null);
+  const [editOpen, setEditOpen] = useState(edit === "1");
 
   if (!agent) {
     return (
@@ -38,6 +40,10 @@ export default function AgentDetailScreen() {
   const el = ELEMENT_COLORS[agent.element] ?? colors.brandPrimary;
   const lists = store.state.optionLists;
   const upd = (partial: Partial<typeof agent>) => store.updateAgent(agent.id, partial);
+  const activeBuild = agent.builds.find((b) => b.id === agent.activeBuildId) ?? agent.builds[0];
+  const du = daysUntil(agent.lastBanner);
+  const daysSinceRerun = du != null ? -du : null;
+  const mxwx = `M${agent.mindscape}W${agent.hasSignatureEngine ? agent.engineRank : 0}`;
 
   const deleteAgent = () => {
     store.deleteAgent(agent.id);
@@ -68,17 +74,25 @@ export default function AgentDetailScreen() {
             <AppText variant="caption" color={colors.muted}>{agent.element} · {agent.specialization}</AppText>
           </View>
         </View>
-        <Pressable testID="delete-agent-btn" onPress={deleteAgent} style={[styles.iconBtn, { borderColor: colors.error }]} hitSlop={10}>
-          <Trash size={18} color={colors.error} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: spacing.sm }}>
+          <Pressable testID="toggle-wishlist" onPress={() => { haptic.light(); upd({ wishlist: !agent.wishlist }); }} style={styles.iconBtn} hitSlop={10}>
+            <Heart size={18} color={agent.wishlist ? colors.brandSecondary : colors.muted} weight={agent.wishlist ? "fill" : "regular"} />
+          </Pressable>
+          <Pressable testID="edit-agent-btn" onPress={() => { haptic.light(); setEditOpen(true); }} style={[styles.iconBtn, { borderColor: colors.brandPrimary }]} hitSlop={10}>
+            <PencilSimple size={18} color={colors.brandPrimary} />
+          </Pressable>
+          <Pressable testID="delete-agent-btn" onPress={deleteAgent} style={[styles.iconBtn, { borderColor: colors.error }]} hitSlop={10}>
+            <Trash size={18} color={colors.error} />
+          </Pressable>
+        </View>
       </View>
 
       {/* tabs */}
       <View style={styles.tabRow}>
-        {(["general", "collection", "builds", "notes"] as Tab[]).map((t) => (
+        {(["fiche", "builds"] as Tab[]).map((t) => (
           <Pressable key={t} testID={`tab-${t}`} onPress={() => { haptic.select(); setTab(t); }} style={[styles.tabBtn, tab === t && { borderBottomColor: colors.brandPrimary }]}>
             <AppText variant="label" color={tab === t ? colors.brandPrimary : colors.muted}>
-              {t === "general" ? "GÉNÉRAL" : t === "collection" ? "COLLECTION" : t === "builds" ? "BUILDS" : "NOTES"}
+              {t === "fiche" ? "FICHE" : "BUILDS"}
             </AppText>
           </Pressable>
         ))}
@@ -89,41 +103,46 @@ export default function AgentDetailScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + spacing.xxl }}
       >
-        {tab === "general" ? (
+        {tab === "fiche" ? (
           <>
             <Card>
-              <EditText label="NOM" value={agent.name} onChange={(t) => upd({ name: t })} />
-              <ChipSelect label="RANG" options={RANKS} value={agent.rank} onChange={(v) => upd({ rank: v as any })} />
-              <SelectField label="ÉLÉMENT" options={lists.elements} value={agent.element} onChange={(v) => upd({ element: v as any })} testID="select-element" />
-              <SelectField label="SPÉCIALISATION" options={lists.specializations} value={agent.specialization} onChange={(v) => upd({ specialization: v as any })} testID="select-spec" />
-              <EditText label="FACTION" value={agent.faction} onChange={(t) => upd({ faction: t })} />
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+                <AppText variant="subtitle" numberOfLines={1} style={{ flex: 1 }}>{agent.name}</AppText>
+                <Badge label={mxwx} bg={colors.surfaceTertiary} fg={colors.info} />
+              </View>
+              <InfoRow label="Rang" value={agent.rank} />
+              <InfoRow label="Élément" value={agent.element} />
+              <InfoRow label="Spécialisation" value={agent.specialization} />
+              <InfoRow label="Faction" value={agent.faction || "—"} />
+              <InfoRow label="Statut" value={agent.owned ? "Possédé" : "Non possédé"} />
             </Card>
             <Card>
-              <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Historique des bannières</AppText>
-              <DateFieldRow label="PREMIÈRE / SORTIE (JJ.MM.AAAA)" value={agent.releaseDate} onChange={(t) => upd({ releaseDate: t })} testID="agent-release" />
-              <DateFieldRow label="DERNIÈRE BANNIÈRE (JJ.MM.AAAA)" value={agent.lastBanner} onChange={(t) => upd({ lastBanner: t })} testID="agent-lastbanner" />
+              <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Bannières</AppText>
+              <InfoRow label="Première bannière" value={fmtDate(agent.releaseDate) || "—"} />
+              <InfoRow label="Dernière bannière" value={fmtDate(agent.lastBanner) || "—"} />
+              <InfoRow label="Nombre de reruns" value={`${agent.reruns}`} />
+              <InfoRow label="Jours depuis rerun" value={daysSinceRerun != null ? `${daysSinceRerun} j` : "—"} />
             </Card>
+            {activeBuild ? (
+              <Card>
+                <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Build actif · {activeBuild.name}</AppText>
+                <BuildLine label="Set 4pc" value={activeBuild.set4 || "—"} />
+                <BuildLine label="Set 2pc" value={activeBuild.set2 || "—"} />
+                <BuildLine label="Disc 4" value={activeBuild.mainStat4 || "—"} />
+                <BuildLine label="Disc 5" value={activeBuild.mainStat5 || "—"} />
+                <BuildLine label="Disc 6" value={activeBuild.mainStat6 || "—"} />
+                <BuildLine label="Priorité substats" value={activeBuild.substats.join(", ") || "—"} />
+                <BuildLine label="Priorité skills" value={activeBuild.skillPriority || "—"} />
+                {activeBuild.caps ? <BuildLine label="Stats / caps" value={activeBuild.caps} /> : null}
+              </Card>
+            ) : null}
+            {agent.notes ? (
+              <Card>
+                <AppText variant="subtitle" style={{ marginBottom: spacing.sm }}>Notes</AppText>
+                <AppText variant="body" color={colors.onSurfaceSecondary}>{agent.notes}</AppText>
+              </Card>
+            ) : null}
           </>
-        ) : null}
-
-        {tab === "collection" ? (
-          <Card>
-            <ToggleRow label="Possédé" value={agent.owned} onChange={(v) => upd({ owned: v })} testID="toggle-owned" />
-            {agent.owned ? (
-              <View style={styles.stepRow}>
-                <AppText variant="body">Mindscape</AppText>
-                <Stepper value={agent.mindscape} onChange={(v) => upd({ mindscape: Math.min(6, v) })} min={0} />
-              </View>
-            ) : null}
-            <ToggleRow label="Moteur signature" value={agent.hasSignatureEngine} onChange={(v) => upd({ hasSignatureEngine: v })} testID="toggle-engine" />
-            {agent.hasSignatureEngine ? (
-              <View style={styles.stepRow}>
-                <AppText variant="body">Rang moteur (P)</AppText>
-                <Stepper value={agent.engineRank} onChange={(v) => upd({ engineRank: Math.min(5, Math.max(1, v)) })} min={1} />
-              </View>
-            ) : null}
-            <ToggleRow label="Wishlist" value={agent.wishlist} onChange={(v) => upd({ wishlist: v })} testID="toggle-wishlist" />
-          </Card>
         ) : null}
 
         {tab === "builds" ? (
@@ -189,24 +208,61 @@ export default function AgentDetailScreen() {
             </Pressable>
           </>
         ) : null}
-
-        {tab === "notes" ? (
-          <Card>
-            <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.sm }}>NOTES PERSONNELLES</AppText>
-            <TextInput
-              testID="notes-input"
-              value={agent.notes}
-              onChangeText={(t) => upd({ notes: t })}
-              placeholder="Ajoute une note libre…"
-              placeholderTextColor={colors.muted}
-              multiline
-              style={styles.notes}
-            />
-          </Card>
-        ) : null}
       </ScrollView>
 
       <BuildSheet editing={editingBuild} onClose={() => setEditingBuild(null)} onSave={saveBuild} lists={lists} />
+
+      <BottomSheet visible={editOpen} onClose={() => setEditOpen(false)} title="Modifier l'agent">
+        <EditText label="NOM" value={agent.name} onChange={(t) => upd({ name: t })} />
+        <ChipSelect label="RANG" options={RANKS} value={agent.rank} onChange={(v) => upd({ rank: v as any })} />
+        <SelectField label="ÉLÉMENT" options={lists.elements} value={agent.element} onChange={(v) => upd({ element: v as any })} testID="select-element" />
+        <SelectField label="SPÉCIALISATION" options={lists.specializations} value={agent.specialization} onChange={(v) => upd({ specialization: v as any })} testID="select-spec" />
+        <EditText label="FACTION" value={agent.faction} onChange={(t) => upd({ faction: t })} />
+        <DateFieldRow label="PREMIÈRE BANNIÈRE (JJ.MM.AAAA)" value={agent.releaseDate} onChange={(t) => upd({ releaseDate: t })} testID="agent-release" />
+        <DateFieldRow label="DERNIÈRE BANNIÈRE (JJ.MM.AAAA)" value={agent.lastBanner} onChange={(t) => upd({ lastBanner: t })} testID="agent-lastbanner" />
+        <View style={styles.stepRow}>
+          <AppText variant="body">Nombre de reruns</AppText>
+          <Stepper value={agent.reruns} onChange={(v) => upd({ reruns: Math.max(0, v) })} min={0} />
+        </View>
+        <ToggleRow label="Possédé" value={agent.owned} onChange={(v) => upd({ owned: v })} testID="toggle-owned" />
+        {agent.owned ? (
+          <View style={styles.stepRow}>
+            <AppText variant="body">Mindscape</AppText>
+            <Stepper value={agent.mindscape} onChange={(v) => upd({ mindscape: Math.min(6, Math.max(0, v)) })} min={0} />
+          </View>
+        ) : null}
+        <ToggleRow label="Moteur signature" value={agent.hasSignatureEngine} onChange={(v) => upd({ hasSignatureEngine: v })} testID="toggle-engine" />
+        {agent.hasSignatureEngine ? (
+          <View style={styles.stepRow}>
+            <AppText variant="body">Rang moteur (W)</AppText>
+            <Stepper value={agent.engineRank} onChange={(v) => upd({ engineRank: Math.min(5, Math.max(1, v)) })} min={1} />
+          </View>
+        ) : null}
+        <ToggleRow label="Wishlist" value={agent.wishlist} onChange={(v) => upd({ wishlist: v })} testID="toggle-wishlist-edit" />
+        <View style={{ marginTop: spacing.sm }}>
+          <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.sm }}>NOTES</AppText>
+          <TextInput
+            testID="notes-input"
+            value={agent.notes}
+            onChangeText={(t) => upd({ notes: t })}
+            placeholder="Ajoute une note libre…"
+            placeholderTextColor={colors.muted}
+            multiline
+            style={styles.notes}
+          />
+        </View>
+        <PrimaryButton label="FERMER" onPress={() => setEditOpen(false)} testID="close-edit-agent" />
+      </BottomSheet>
+    </View>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.xs }}>
+      <AppText variant="body" color={colors.muted}>{label}</AppText>
+      <AppText variant="body" numberOfLines={1} style={{ flexShrink: 1, textAlign: "right", marginLeft: spacing.md }}>{value}</AppText>
     </View>
   );
 }

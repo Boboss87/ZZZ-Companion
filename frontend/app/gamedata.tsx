@@ -113,6 +113,20 @@ export default function GameDataScreen() {
           ))}
         </Card>
 
+        <Card>
+          <View style={styles.cardHead}>
+            <Lightning size={18} color={colors.brandPrimary} weight="fill" />
+            <AppText variant="subtitle">Coefficient répartition events</AppText>
+          </View>
+          <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+            Exposant de répartition des récompenses d'événements sur la durée du patch. 1 = linéaire · {">"} 1 = plus en début · {"<"} 1 = plus en fin.
+          </AppText>
+          <View style={styles.yieldRow}>
+            <AppText variant="body" style={{ flex: 1 }}>Coefficient (exposant)</AppText>
+            <NumberCell testID="event-reward-coef" value={cfg.eventRewardCoefficient} onChange={(v) => store.setEventRewardCoefficient(v)} wide />
+          </View>
+        </Card>
+
         {/* Progression tables */}
         {TABLES.map((t) => {
           const rows = cfg[t.table] as Record<string, number>[];

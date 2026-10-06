@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import React from "react";
 import { Pressable, View } from "react-native";
-import { Star } from "phosphor-react-native";
+import { Heart } from "phosphor-react-native";
 
 import { ELEMENT_COLORS, fonts, radius, spacing, useTheme } from "@/src/theme";
 import { Agent } from "@/src/store/types";
@@ -72,17 +72,18 @@ export function AgentPortrait({
           </LinearGradient>
         )}
 
-        {/* rank + element corner */}
+        {/* rank + spec corner */}
         <View style={{ position: "absolute", top: spacing.xs, left: spacing.xs, flexDirection: "row", gap: 3 }}>
           <Badge label={agent.rank} bg={agent.rank === "S" ? colors.brandPrimary : colors.surfaceTertiary} fg={agent.rank === "S" ? colors.onBrandPrimary : colors.onSurfaceTertiary} />
+          <Badge label={agent.specialization.slice(0, 3).toUpperCase()} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
         </View>
         <View style={{ position: "absolute", top: spacing.xs, right: spacing.xs }}>
           <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: elementColor }} />
         </View>
 
-        {agent.wishlist && !owned ? (
+        {agent.wishlist ? (
           <View style={{ position: "absolute", bottom: 28, right: spacing.xs }}>
-            <Star size={16} color={colors.brandPrimary} weight="fill" />
+            <Heart size={16} color={colors.brandSecondary} weight="fill" />
           </View>
         ) : null}
 
@@ -98,7 +99,7 @@ export function AgentPortrait({
 
         {owned ? (
           <View style={{ position: "absolute", bottom: 26, left: spacing.xs }}>
-            <Badge label={`M${agent.mindscape}`} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
+            <Badge label={`M${agent.mindscape}W${agent.hasSignatureEngine ? agent.engineRank : 0}`} bg={colors.surfaceInverse} fg={colors.onSurfaceInverse} />
           </View>
         ) : null}
       </View>

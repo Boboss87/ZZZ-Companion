@@ -1,0 +1,34 @@
+{
+  "summary": "Frontend-only re-test of V1.1 Phase 4 (ZZZdex consultation/edit sheet + visual grid badges + sort cycle) + re-test of Projection 'Passer au patch suivant' inline-confirm fix. 7/7 scenarios PASS. All previously-reported CRITICAL bug (Alert.alert on web) is now FIXED: the next-patch button now surfaces an inline confirm pane with 'Il reste N dépense(s) non réalisée(s)...' and both 'Oui, les réaliser' / 'Non, passer' buttons; tapping 'Non, passer' (testID confirm-next-patch) archives the patch (Patchs clôturés section appears) and the planned-expense dialog does NOT show when there are no planned expenses (direct archive). Phase 4 verified: add-agent-button opens the agent detail with the edit BottomSheet pre-opened (?edit=1); all required testIDs present (select-element, select-spec, agent-release, agent-lastbanner, toggle-owned, toggle-engine, toggle-wishlist-edit, notes-input, close-edit-agent); NOM/mindscape/engine updates propagate live to the fiche with 'M2W1' badge, Statut=Possédé, Notes='test note'; FICHE blocks render as read-only (header + MxWx badge, info card, Bannières card with 'Jours depuis rerun', Build actif, Notes); edit-agent-btn reopens the sheet; toggle-wishlist in header fills the heart; BUILDS tab preserved with add-build-btn + build-set4 dropdown; back on grid, each agent-tile shows rank badge (S), 3-letter spec badge (ATT/STU/SUP), element color dot (Fire=red, Electric=magenta, Ice=cyan), unowned tiles dimmed at opacity 0.45; sort-cycle chip cycles Rerun → Nom → Élément → Spé → Rerun with correct orderings validated against 3 seeded agents (Alpha/Fire/Attack/2024-01-01, Mango/Electric/Stun/2024-06-01, Zebra/Ice/Support/2025-09-01) — sorting does NOT mutate agent data (reruns=0 preserved).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/fiche_after_close.png",
+    "/tmp/edit_reopened.png",
+    "/tmp/build_sheet.png",
+    "/tmp/grid_sorted.png",
+    "/tmp/proj_confirm.png",
+    "/tmp/proj_archived.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "agent/[id].tsx:29 — editOpen initialized from `?edit=1` query param; add-agent flow pushes `/agent/${id}?edit=1` so sheet opens on first load. Clean. ✅",
+    "agent/[id].tsx:46 — mxwx formula `M${mindscape}W${hasSignatureEngine ? engineRank : 0}` matches spec; shown in fiche header badge and tile when owned.",
+    "AgentPortrait.tsx:49-52 — rank-S gets 2px brandPrimary border, owned=false drops opacity to 0.45 (dimmed). Rank/spec badges and element dot positioned in corners; MxWx badge rendered only when owned (line 100-104). ✅",
+    "zzzdex.tsx:36-61 — filter+sort memo correctly applies all four sort modes; `sinceKey` returns -Infinity for null banner → sorted last; stable fallback by name. Sort is non-mutating (uses local `list` from filter). ✅",
+    "zzzdex.tsx:152-156 — sort-cycle chip cycles rerun→name→element→spec→rerun with label from SORT_LABEL. ✅",
+    "projection.tsx:114-120, 159-179 — nextPatch opens inline confirm only when `plannedRemaining > 0`; otherwise doAdvance() runs directly. Confirm panel reuses the same validateBox style as expense Valider (consistent UX). 'Non, passer' hides the pane and advances. ✅ Replaces the previous Alert.alert that didn't fire on react-native-web."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A", "frontend": "100% (7/7 scenarios PASS)" },
+  "seed_data_creation": "Through UI during tests, in a fresh IndexedDB session: Phoenix (M2W1, owned, engine, wishlist, note='test note'); then Alpha/Fire/Attack/2024-01-01, Mango/Electric/Stun/2024-06-01, Zebra/Ice/Support/2025-09-01 for sort validation; one Projection patch + 1 planned expense (130 tickets) advanced via 'Non, passer' to validate archive flow. Each Playwright context starts clean.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "URL: https://mobile-dev-blueprint.preview.emergentagent.com (offline app, each Playwright context = clean IDB). Mobile viewport 390x844. Caveat: React Native <Switch> on web does NOT respond to synthetic JS pointer/click events — Playwright's page.click('[data-testid=\"toggle-owned\"]', force=True) WORKS; raw dispatchEvent-based JS click does NOT change the switch state. Use Playwright click (optionally with scroll_into_view_if_needed via element handle) for Switch testIDs. The agent edit BottomSheet opens scrolled to the bottom on first render — scroll_into_view_if_needed or sheet-internal scrollTop=0 is required before clicking select-element/select-spec. Select dropdown options render in a modal: when clicking an option text that collides with a filter-chip label (e.g. 'Fire'), prefer the LAST matching DOM node (the dropdown opens later in DOM order).",
+  "rca_of_issue": "N/A — all Phase 4 features pass and the previously reported Alert.alert web-shim bug is confirmed fixed (inline confirm pane replaces the native alert, exactly as recommended in iteration_5 action items)."
+}

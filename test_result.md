@@ -188,3 +188,50 @@
 ## agent_communication:
 ##     -agent: "main"
 ##     -message: "Iteration 4: added user-editable option lists (elements, specializations, disc sets, build main stats, build sub stats) persisted in state.optionLists, edited via new EditableList sections in Données du jeu. Agent detail Element/Specialization and build Set4/Set2/mainStat4-6 are now Select dropdowns; build substats is a MultiSelect; all fed from optionLists. Banner dates (release/lastBanner) now use DateField (JJ.MM.AAAA display + ISO storage). Removed the 'Données de farm (interne)' card. Added 'État des stocks' title atop the farm list."
+
+## ITERATION 5 — V1.1 Phase 1-3: migration/seed removal + Projection refonte + Accueil dashboard
+## frontend:
+##   - task: "V1->V2 migration: clear example data, backfill new fields"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/store/AppStore.tsx, frontend/src/store/gameData.ts, frontend/src/store/types.ts"
+##     needs_retesting: true
+##   - task: "Projection refonte (chained dates, time-aware income, event coefficient, planned/done expenses with Effectuer+deduct, Passer au patch suivant)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/store/projectionEngine.ts, frontend/app/(tabs)/projection.tsx, frontend/app/gamedata.tsx, frontend/src/store/AppStore.tsx"
+##     needs_retesting: true
+##   - task: "Accueil farm dashboard (all objectives, cumulative time, delta)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/index.tsx"
+##     needs_retesting: true
+## agent_communication:
+##     -agent: "main"
+##     -message: "Phase 1-3 of V1.1. The app now starts empty (seed agents/objectives/patches/sessions removed; presets + barème + dropdown lists kept). Projection fully reworked (see steps). Accueil farm card replaced by a compact dashboard."
+
+## ITERATION 6 — V1.1 Phase 4: ZZZdex consultation/edit + grid badges + sorting (+ next-patch confirm fix)
+## frontend:
+##   - task: "Agent fiche consultation + edit sheet + wishlist heart"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/agent/[id].tsx"
+##     needs_retesting: true
+##   - task: "ZZZdex grid badges (rank/spec/element/MxWx/wishlist) + unowned opacity"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/components/AgentPortrait.tsx"
+##     needs_retesting: true
+##   - task: "ZZZdex sorting (rerun desc / name / element / spec)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/zzzdex.tsx"
+##     needs_retesting: true
+##   - task: "Projection next-patch inline confirm (replaces web-broken Alert.alert)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/app/(tabs)/projection.tsx"
+##     needs_retesting: true
+## agent_communication:
+##     -agent: "main"
+##     -message: "Phase 4 done. Agent detail is now consultation-first (FICHE tab read-only + BUILDS tab) with a ✏️ edit BottomSheet and ❤️ wishlist. Grid tiles show rank+spec+element badges, MxWx for owned, wishlist heart, dimmed if unowned. Sorting: rerun(desc)/name/element/spec. Also fixed the Passer-au-patch-suivant confirm to an inline pane."

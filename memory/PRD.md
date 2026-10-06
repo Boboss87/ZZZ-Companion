@@ -91,3 +91,11 @@ Créer une application mobile personnelle "ZZZ Companion" pour remplacer une Goo
 ## Notes
 - Aucune authentification, aucun backend, aucune clé API (voir /app/memory/test_credentials.md).
 - Les valeurs des tables de matériaux (gameData.ts) sont approximatives et destinées à être ajustées par l'utilisateur.
+
+## V1.1 — refonte Projection, Dashboard, ZZZdex + migration robuste (2026)
+**Phase 1 — Fondations** : migrate() v1->v2 avec backfill champ-par-champ (agents/builds/objectifs/patchs/depenses) ; suppression one-time des donnees exemple (agents/objectifs/patchs/sessions) en gardant presets + bareme + listes. Nouveaux champs : agent.reruns, patch.startDate, gameConfig.eventRewardCoefficient, settings.resourceFolderUri.
+**Phase 2 — Projection** : Situation actuelle (4 monnaies + total auto) ; dates de patchs auto-enchainees ; revenus selon temps ecoule (jours restants, quotidien lineaire, events restants via coefficient exposant editable) ; depenses prevues/effectuees + bouton Effectuer (cout reel deduit des Master Tapes) ; Passer au patch suivant avec confirmation inline (archivage).
+**Phase 3 — Dashboard Accueil** : vue d'ensemble compacte de tous les objectifs (progression, temps restant, temps cumule, delai, Delta colore).
+**Phase 4 — ZZZdex** : fiche consultation (lecture seule) + edition (BottomSheet) + wishlist ; onglet Builds conserve ; grille visuelle (badges rang/spe/element, MxWx si possede, coeur wishlist, grise si non possede) ; tris Rerun(decroissant)/Nom/Element/Spe.
+- Teste : iteration_5 (Phase 1-3) et iteration_6 (Phase 4), tous verts.
+**Phase 5 — Systeme de ressources (A FAIRE, natif Android uniquement)** : resolution auto des images WebP par nom normalise (portraits/badges/icones), dossier local via SAF puis URL distante ; non testable en apercu Expo Go/web.

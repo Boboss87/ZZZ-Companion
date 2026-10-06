@@ -4,11 +4,12 @@ import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/src/components/BottomSheet";
-import { AppText, Badge, Card, InlineNumber, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
+import { AppText, Badge, Card, DateField, InlineNumber, PrimaryButton, Stepper, haptic, useToast } from "@/src/components/ui";
 import { useStore } from "@/src/store/AppStore";
-import { computeProjection } from "@/src/store/projectionEngine";
+import { fmtDate } from "@/src/store/format";
+import { computeProjection, ProjRow } from "@/src/store/projectionEngine";
 import { desiredCostEstimate } from "@/src/store/pullStats";
-import { ProjPatch } from "@/src/store/types";
+import { ProjExpense } from "@/src/store/types";
 import { fonts, makeStyles, radius, spacing, useTheme } from "@/src/theme";
 
 export default function ProjectionScreen() {
@@ -21,7 +22,8 @@ export default function ProjectionScreen() {
 
   const avgDesired = desiredCostEstimate(state.pullSessions, state.settings.avgDesiredCost);
   const proj = useMemo(() => computeProjection(state, avgDesired), [state, avgDesired]);
-  const editPatch = state.projection.patches.find((p) => p.id === editId) || null;
+  const editRow = proj.rows.find((r) => r.patch.id === editId) || null;
+  const editIndex = proj.rows.findIndex((r) => r.patch.id === editId);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.surface }}>
@@ -47,15 +49,18 @@ export default function ProjectionScreen() {
             <AppText style={{ fontFamily: fonts.display, fontSize: 28, color: colors.brandPrimary }}>{proj.startTotal} tickets</AppText>
           </View>
           <AppText variant="caption" color={colors.muted}>
-            Coût moyen d'un perso souhaité : {avgDesired} tickets (160 polychromes = 1 ticket).
+            Coût moyen d&apos;un perso souhaité : {avgDesired} tickets (160 polychromes = 1 ticket).
           </AppText>
         </Card>
 
         {/* Patch projection */}
         <AppText variant="label" color={colors.muted}>PROJECTION PAR PATCH</AppText>
-        {proj.rows.map((row) => (
+        {proj.rows.length === 0 ? (
+          <AppText variant="caption" color={colors.muted}>Aucun patch. Ajoute ton patch en cours ci-dessous.</AppText>
+        ) : null}
+        {proj.rows.map((row, i) => (
           <Card key={row.patch.id} onPress={() => setEditId(row.patch.id)} accent={row.deficit} testID={`patch-card-${row.patch.id}`}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
               <AppText variant="title">{row.patch.name}</AppText>
               <Badge
                 label={row.deficit ? "INSUFFISANT" : `≈ ${row.chars} PERSO`}
@@ -63,13 +68,17 @@ export default function ProjectionScreen() {
                 fg={row.deficit ? colors.onError : colors.info}
               />
             </View>
+            <AppText variant="caption" color={colors.muted} style={{ marginBottom: spacing.sm }}>
+              {row.startISO ? `${fmtDate(row.startISO)} → ${fmtDate(row.endISO)}` : "Date de début non définie"}
+              {i === 0 ? ` · ${row.daysRemaining} j restants` : ""}
+            </AppText>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Col label="ENTRÉES" value={`+${row.income}`} color={colors.success} />
-              <Col label="DÉPENSES" value={`-${row.spent}`} color={colors.brandSecondary} />
+              <Col label="À GAGNER" value={`+${row.income}`} color={colors.success} />
+              <Col label="PRÉVU" value={`-${row.plannedSpent}`} color={colors.brandSecondary} />
               <Col label="SOLDE" value={`${row.balanceAfter}`} color={row.deficit ? colors.error : colors.brandPrimary} />
             </View>
             <AppText variant="caption" color={colors.muted} style={{ marginTop: spacing.sm }}>
-              {row.patch.expenses.length} dépense(s) · appuie pour modifier
+              {row.plannedCount} prévue(s){row.doneCount ? ` · ${row.doneCount} effectuée(s)` : ""} · appuie pour modifier
             </AppText>
           </Card>
         ))}
@@ -92,52 +101,50 @@ export default function ProjectionScreen() {
         ) : null}
       </ScrollView>
 
-      <PatchSheet patch={editPatch} onClose={() => setEditId(null)} />
+      <PatchSheet row={editRow} isFirst={editIndex === 0} onClose={() => setEditId(null)} />
     </View>
   );
 }
 
-function PatchSheet({ patch, onClose }: { patch: ProjPatch | null; onClose: () => void }) {
+function PatchSheet({ row, isFirst, onClose }: { row: ProjRow | null; isFirst: boolean; onClose: () => void }) {
   const { colors } = useTheme();
   const styles = useStyles();
   const store = useStore();
   const toast = useToast();
-  if (!patch) return null;
+  const [confirmNext, setConfirmNext] = useState(false);
+  if (!row) return null;
+  const patch = row.patch;
 
-  const spent = patch.expenses.reduce((sum, e) => sum + (e.actualCost ?? e.pullCost), 0);
+  const plannedRemaining = patch.expenses.filter((e) => e.actualCost === null).length;
+  const doAdvance = () => { haptic.success(); store.advancePatch(patch.id); toast("Patch archivé", "success"); onClose(); };
+  const nextPatch = () => { if (plannedRemaining > 0) setConfirmNext(true); else doAdvance(); };
 
   return (
-    <BottomSheet visible={!!patch} onClose={onClose} title={`Patch ${patch.name}`}>
+    <BottomSheet visible={!!row} onClose={onClose} title={`Patch ${patch.name}`}>
       <NumberField label="Nom du patch" value={patch.name} text onChangeText={(t) => store.updatePatch(patch.id, { name: t })} />
+      {isFirst ? (
+        <View style={{ marginBottom: spacing.md }}>
+          <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>DATE DE DÉBUT (JJ.MM.AAAA)</AppText>
+          <DateField valueISO={patch.startDate} onChange={(iso) => store.updatePatch(patch.id, { startDate: iso })} style={styles.field} testID="patch-startdate" />
+        </View>
+      ) : (
+        <View style={{ marginBottom: spacing.md }}>
+          <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>DÉBUT (CALCULÉ AUTO)</AppText>
+          <AppText variant="body">{row.startISO ? `${fmtDate(row.startISO)} → ${fmtDate(row.endISO)}` : "Définis la date du patch en cours"}</AppText>
+        </View>
+      )}
       <View style={styles.stepField}>
         <AppText variant="body">Durée (jours)</AppText>
         <Stepper value={patch.durationDays} onChange={(v) => store.updatePatch(patch.id, { durationDays: Math.max(1, v) })} step={7} min={1} />
       </View>
       <View style={styles.stepField}>
-        <AppText variant="body">Revenus événements</AppText>
+        <AppText variant="body">Récompenses events (estim.)</AppText>
         <InlineNumber value={patch.tempIncome} onChange={(v) => store.updatePatch(patch.id, { tempIncome: v })} testID="patch-income" />
       </View>
 
-      <AppText variant="label" color={colors.muted} style={{ marginTop: spacing.sm }}>DÉPENSES PRÉVUES (tickets)</AppText>
+      <AppText variant="label" color={colors.muted} style={{ marginTop: spacing.sm }}>DÉPENSES (tickets)</AppText>
       {patch.expenses.map((e) => (
-        <View key={e.id} style={styles.expenseCard} testID={`expense-${e.id}`}>
-          <TextInput
-            value={e.name}
-            onChangeText={(t) => store.updateExpense(patch.id, e.id, { name: t })}
-            placeholder="Nom (ex. Perso limité)"
-            placeholderTextColor={colors.muted}
-            style={styles.expenseInput}
-          />
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
-            <View>
-              <AppText variant="label" color={colors.muted}>PRÉVU</AppText>
-              <InlineNumber value={e.pullCost} onChange={(v) => store.updateExpense(patch.id, e.id, { pullCost: v })} testID={`expense-cost-${e.id}`} />
-            </View>
-            <Pressable testID={`expense-delete-${e.id}`} onPress={() => { haptic.light(); store.deleteExpense(patch.id, e.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
-              <Trash size={16} color={colors.error} />
-            </Pressable>
-          </View>
-        </View>
+        <ExpenseRow key={e.id} patchId={patch.id} expense={e} />
       ))}
       <Pressable testID="add-expense-button" onPress={() => { haptic.light(); store.addExpense(patch.id, { name: "Nouvelle dépense", pullCost: 130, actualCost: null }); }} style={styles.addRow}>
         <Plus size={16} color={colors.brandPrimary} weight="bold" />
@@ -145,16 +152,110 @@ function PatchSheet({ patch, onClose }: { patch: ProjPatch | null; onClose: () =
       </Pressable>
 
       <View style={styles.spentTotal}>
-        <AppText variant="label" color={colors.muted}>TOTAL DÉPENSES</AppText>
-        <AppText variant="subtitle" color={colors.brandSecondary}>-{spent} tickets</AppText>
+        <AppText variant="label" color={colors.muted}>PRÉVU (restant)</AppText>
+        <AppText variant="subtitle" color={colors.brandSecondary}>-{row.plannedSpent} tickets</AppText>
       </View>
 
-      <Pressable testID="close-patch-button" onPress={() => { haptic.success(); store.closePatch(patch.id); toast("Patch clôturé et archivé", "success"); onClose(); }} style={[styles.actionBtn, { backgroundColor: colors.success }]}>
-        <CheckCircle size={18} color={colors.onSuccess} weight="bold" />
-        <AppText variant="subtitle" color={colors.onSuccess}>Clôturer ce patch</AppText>
-      </Pressable>
+      {isFirst ? (
+        <>
+          <Pressable testID="next-patch-button" onPress={nextPatch} style={[styles.actionBtn, { backgroundColor: colors.success }]}>
+            <CheckCircle size={18} color={colors.onSuccess} weight="bold" />
+            <AppText variant="subtitle" color={colors.onSuccess}>Passer au patch suivant</AppText>
+          </Pressable>
+          {confirmNext ? (
+            <View style={styles.validateBox}>
+              <AppText variant="body" style={{ marginBottom: spacing.sm }}>
+                Il reste {plannedRemaining} dépense(s) non réalisée(s). Souhaitez-vous les réaliser avant de passer au patch suivant ?
+              </AppText>
+              <View style={{ flexDirection: "row", gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton label="Oui, les réaliser" variant="ghost" onPress={() => setConfirmNext(false)} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton label="Non, passer" testID="confirm-next-patch" onPress={() => { setConfirmNext(false); doAdvance(); }} />
+                </View>
+              </View>
+            </View>
+          ) : null}
+        </>
+      ) : null}
       <PrimaryButton label="SUPPRIMER LE PATCH" variant="ghost" onPress={() => { store.deletePatch(patch.id); onClose(); }} testID="delete-patch-button" />
     </BottomSheet>
+  );
+}
+
+function ExpenseRow({ patchId, expense }: { patchId: string; expense: ProjExpense }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const store = useStore();
+  const toast = useToast();
+  const done = expense.actualCost !== null;
+  const [validating, setValidating] = useState(false);
+  const [real, setReal] = useState(expense.pullCost);
+
+  return (
+    <View style={styles.expenseCard} testID={`expense-${expense.id}`}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+        <TextInput
+          value={expense.name}
+          editable={!done}
+          onChangeText={(t) => store.updateExpense(patchId, expense.id, { name: t })}
+          placeholder="Nom (ex. Perso limité)"
+          placeholderTextColor={colors.muted}
+          style={[styles.expenseInput, { flex: 1 }]}
+        />
+        {done ? <Badge label="EFFECTUÉE" bg={colors.success} fg={colors.onSuccess} /> : null}
+      </View>
+
+      {done ? (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
+          <View>
+            <AppText variant="label" color={colors.muted}>COÛT RÉEL</AppText>
+            <AppText variant="subtitle" color={colors.onSurface}>{expense.actualCost} tickets</AppText>
+          </View>
+          <Pressable testID={`expense-delete-${expense.id}`} onPress={() => { haptic.light(); store.deleteExpense(patchId, expense.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
+            <Trash size={16} color={colors.error} />
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: spacing.sm }}>
+            <View>
+              <AppText variant="label" color={colors.muted}>PRÉVU</AppText>
+              <InlineNumber value={expense.pullCost} onChange={(v) => store.updateExpense(patchId, expense.id, { pullCost: v })} testID={`expense-cost-${expense.id}`} />
+            </View>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              <Pressable
+                testID={`expense-do-${expense.id}`}
+                onPress={() => { haptic.light(); setReal(expense.pullCost); setValidating((v) => !v); }}
+                style={[styles.rowBtn, { borderColor: colors.success, backgroundColor: colors.success }]}
+              >
+                <CheckCircle size={18} color={colors.onSuccess} weight="bold" />
+              </Pressable>
+              <Pressable testID={`expense-delete-${expense.id}`} onPress={() => { haptic.light(); store.deleteExpense(patchId, expense.id); }} style={[styles.rowBtn, { borderColor: colors.error }]}>
+                <Trash size={16} color={colors.error} />
+              </Pressable>
+            </View>
+          </View>
+          {validating ? (
+            <View style={styles.validateBox}>
+              <AppText variant="label" color={colors.muted} style={{ marginBottom: spacing.xs }}>COÛT RÉEL (déduit des Master Tapes)</AppText>
+              <InlineNumber value={real} onChange={setReal} testID={`expense-real-${expense.id}`} />
+              <View style={{ flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm }}>
+                <PrimaryButton label="Annuler" variant="ghost" onPress={() => setValidating(false)} />
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton
+                    label="Valider"
+                    testID={`expense-validate-${expense.id}`}
+                    onPress={() => { haptic.success(); store.validateExpense(patchId, expense.id, real); setValidating(false); toast("Dépense effectuée", "success"); }}
+                  />
+                </View>
+              </View>
+            </View>
+          ) : null}
+        </>
+      )}
+    </View>
   );
 }
 
@@ -289,6 +390,14 @@ const useStyles = makeStyles((c) => ({
     borderTopColor: c.border,
     paddingTop: spacing.md,
     marginTop: spacing.xs,
+  },
+  validateBox: {
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: c.success,
+    backgroundColor: c.surfaceSecondary,
   },
   actionBtn: {
     flexDirection: "row",
